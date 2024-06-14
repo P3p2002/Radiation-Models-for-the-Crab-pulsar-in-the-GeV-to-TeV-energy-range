@@ -9,7 +9,6 @@ Created on Mon Nov 13 19:33:46 2023
 import numpy as np
 from calculation_angles import *
 from Change_dimensions import *
-from Power_law_X_ray import *
 from astropy.constants import c
 from astropy.constants import m_e
 from astropy.constants import hbar
