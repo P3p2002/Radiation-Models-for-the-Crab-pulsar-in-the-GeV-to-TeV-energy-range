@@ -1,4 +1,5 @@
 # Radiation-Models-for-the-Crab-pulsar-in-the-GeV-to-TeV-energy-range
+
 These are the codes of my final degree thesis, which are about the models of radiation of Neutron Stars. I especially focused on the Crab pulsar and the GeV to TeV energy range.
 
 This code returns a huge range of different functions and data. The first thing to notice is the normalized flux of the incoming photons, which ranges from an energy of 0.4 keV to an energy of 250 keV. The fit has been done with an asymmetric Lorentz function. The fit of the lowest interval is seen in the following image:
