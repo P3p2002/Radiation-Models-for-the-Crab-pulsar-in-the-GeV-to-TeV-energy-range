@@ -12,6 +12,7 @@ from calculation_angles import *
 from Change_dimensions import *
 from xsection_jacobians_stuff import *
 from f_function import *
+from Anisotropy import *
 import astropy.units as u
 from astropy.constants import c
 from astropy.constants import m_e
@@ -22,6 +23,7 @@ from astropy.constants import h
 import matplotlib.pyplot as plt
 import pandas as pds
 import scienceplots
+import os
 
 #The first number indicates the interval and the second one which peak
 
@@ -102,7 +104,7 @@ E_fotoi2 = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV)#Energies en les
 
 
 #E_fotoi = np.logspace(-1,2, steps)*(u.keV)
-E_fotoi1 = np.logspace(-5,2,40)*(u.keV)#Energies inicials dels fotons
+E_fotoi1 = np.logspace(-5,2,30)*(u.keV)#Energies inicials dels fotons
 
 logE = np.log(E_fotoi1/E0)
 
@@ -112,7 +114,7 @@ Delta_E = E_fotoi1[1:] - E_fotoi1[:-1]#Espaiat d'energies dels fotons
 
 Delta_log = np.log((E_fotoi1[1:])/E0) -np.log((E_fotoi1[:-1])/E0)#Espaiat logaritmic
 
-steps = 40 #Numero de energia final dels fotons que tindrè
+steps = 30 #Numero de energia final dels fotons que tindrè
 #El logspace em genera un conjunt de 10**n sent n valors entre 1 i 6 espaiats
 #pels steps que li doni
 
@@ -149,6 +151,7 @@ theta = thetau*u.rad #Arary en 3 dimensions i amb unitats
 
 thetaf2 = np.arccos(1/beta - E_fotoi_3d*(1/beta-np.cos(theta))/E_fotof_3d)#Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
+#Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
 E_fotof_max = E_fotoi_3d[0]*m*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
 E_fotof_min = E_fotoi_3d[0]*m*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
 
@@ -216,8 +219,6 @@ b = 0.133
 K1 = 0.524
 a1 = 0.452
 b1 = 0.057
-#Declaro un primer espectre que em donara una aproximacio
-spectra1 = K*(E_fotoi_3d/E0)**(-a-1-b*np.log10(E_fotoi_3d/E0))/E0
 
 #Aquest segon espectre es més precís
 spectra = []
@@ -235,44 +236,16 @@ for j in range(len(E_fotof)):
     spectra.append(np.array(auxiliar1))
 spectra = np.array(spectra)*(1/E0).unit
 
-#Faig les multiplicacions adients
-powers = (1-np.cos(theta))*cross_section_exact*spectra
-
-
-#Calculo la primera integral
-first_integral = []
-
-for j in range(len(E_fotof)):
-    auxiliar2 = []
-    for i in range(len(R)):
-        auxiliar = 0
-        for k in range(len(E_fotoi)):
-            if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
-                auxiliar += powers[j][k][i]*Delta_log[k]*E_fotoi[k]
-        auxiliar2.append(np.array(auxiliar))
-    first_integral.append(np.array(auxiliar2))
-    
-#Li poso les unitats que toca i ho deixo en forma d'array
-first_integral = np.array(first_integral)*powers.unit
-
-#Trec les unitats per si ho he de mirar a la consola, fer-ho més fàcil
-first_integralu = first_integral.value
-
 #Inicialtzo la variable de la fase
-delta_phase = 0.002
+delta_phase = 0.004
 phase = np.arange(0.2,0.5,delta_phase)
 phase_3d = add_dim_e_ff(phase, E_fotof, R).value#El poso en les dimensions que em conve
 time = phase_3d*T
 
 
-fi_time = add_dimension_R(first_integral, phase)*first_integral.unit#De nou, ho poso en unes altres dimensions
-
 #Canvio les variables segons les dimensions que em conve
 R_2d = add_dimension_R(R, E_fotof)*R.unit
 R_3d = add_dimension_R(R_2d, phase)*R.unit
-
-theta_2dt =add_dimension_R(theta_1d,E_fotof)
-theta_t = add_dimension_R(theta_2dt, phase)*u.rad
 
 
 #Busco els parametres dels pulse profiles
@@ -306,7 +279,7 @@ def display_sigfig(x, xerr, sigfigs=2) -> str:
     decimals = int(max(0, decimals))
 
     return '{:.{dec}f}'.format(x, dec=decimals)+'$\pm${:.{dec}f}'.format(xerr, dec=decimals)
-
+"""
 #Bucle per passar coses a Latex
 for i in range(len(X0s)):
     print("GRAFICA"+str(i+1))
@@ -316,48 +289,8 @@ for i in range(len(X0s)):
     print("$\sigma_2$ = ", display_sigfig(sigmes2[i], np.sqrt(cov[2][2]))+",")
     print("$A = $", display_sigfig(As[i], np.sqrt(cov[3][3]))+",")
     print("$C = $", display_sigfig(Cs[i], np.sqrt(cov[4][4]))+".")
+"""
 
-
-#És el temps que correspon al Pulse Profile
-time_d = time - R_3d*(1-np.cos(theta_t))/c + theta_t.value/Omega
-
-#el Pulse profile com a tal, amb una primer aproximació de que no depenen de l'energia
-fun = funct_f(time_d, X0s[0], sigmes1[0], sigmes2[0], As[0], Cs[0])
-
-#Seguent cosa que haure d'integrar
-power2 = fun*fi_time*Rl**2/R_3d**2
-
-#segona integral en una primera aproximacio
-second_integral = np.sum(power2, axis = 2)*delta_R
-
-
-#Ho trasposo i poso les unitats que toca
-si_tr = np.transpose(second_integral)
-
-Lsd = 4.6e31*u.J/u.s
-
-dNdV = Lsd/(4*np.pi*c**3*gamma_w*m_e)
-
-#carrega electro en unitats naturals alpha = e^2/(4pi) \approx 1/137
-e2 = 4*np.pi/137
-
-kevs_m = 8.07e8/(u.m*u.keV)
-
-si_tr_units = si_tr*dNdV*e2/(kevs_m**2*Rl)
-
-#Ho grafico
-for i in range(len(E_fotof)):
-    plt.plot(phase, si_tr_units[i], label = "approx"+str(i))
-    ids = pds.Series(si_tr_units[i]).idxmax()
-    print(phase[ids])
-    if i%2 == 0:
-        plt.legend()
-        plt.show()
-plt.xlabel("Phase(rad)")
-plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 15)
-plt.legend()
-plt.show()   
-        
         
 #Declaro una funcio pel temps dels Pulse Profiles
 def Time_d(time, R, theta):
@@ -393,7 +326,7 @@ Theta2D = add_dimension_R(theta_1d, E_fotoi)*u.rad
 Theta3D = add_dimension_R(Theta2D, E_fotof)*u.rad
 Theta4D = add_dimension_R(Theta3D, phase)*u.rad
 
-#L'espectre amb les dimensions que vull
+#L'espectre i la x-sec amb les dimensions que vull (afegeixo la dimensió de la fase)
 xsec4D = add_dimension_R(cross_section_exact, phase)*cross_section_exact.unit
 spectra4D = add_dimension_R(spectra, phase)*spectra.unit
 
@@ -420,20 +353,71 @@ for l in range(len(phase)):
 first_int = np.array(first_int)*first.unit*E_fotoi.unit
 first_intu = first_int.value
 
-#tono a integrar, tranposo i poso les unitats que toquen
-second_int = np.sum(first_int*Rl**2/R_3d**2, axis = 2)*delta_R
+folder_name = "Data"
+
+if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+        print(f"Folder '{folder_name}' created successfully.")
+else:
+    print(f"Folder '{folder_name}' already exists.")
+    
+for i in range(len(phase)):
+    file_name = "First_int_" + str(i)
+    file_path = os.path.join(folder_name, file_name)
+    with open(file_path, "w") as file:
+        for j in range(len(E_fotof)):
+            
+            line = ' '.join(map(str, first_intu[i][j]))
+            file.write(line + '\n')
+    file.close()
+
+Lsd = 4.6e31*u.J/u.s
+
+dNdV = Lsd/(4*np.pi*c**3*gamma_w*m_e)
+
+#carrega electró en unitats naturals alpha = e^2/(4pi) \approx 1/137
+e2 = 4*np.pi/137
+
+kevs_m = 8.07e8/(u.m*u.keV)
+
+freq_r = 1*u.rad/(u.m)
+
+sigma = 0.015
+
+
+theta0 = phase_r(R_3d, freq_r)
+
+rho = anisotropy(phase_3d, R_3d, sigma, theta0 )
+
+
+#rho = 1
+
+#torno a integrar, tranposo i poso les unitats que toquen
+second_int = np.sum(first_int*Rl**2/R_3d**2*rho, axis = 2)*delta_R
 secondi_tr = np.transpose(second_int)
 secitr_units = secondi_tr*dNdV*e2/(kevs_m**2*Rl)
 
-#Això em servira per compara els SEDs
+
+for j in range(len(secitr_units)):
+    name =  "Second_integral_" + str(j)
+    with open(name, "w") as file:
+        for i in range(len(phase)):
+            file.write(str(secitr_units[j][i]/secitr_units[j][i].unit))
+            file.write("\n")
+        file.close()
+
+
+#Això em servirà per comparar els SEDs
 """
 x = [100000000, 345511.48368313984, 492388.6470441612, 766683.7914064317, 1045274.7822721634, 1778278.058325248, 3025302.9216365786, 5146809.142031739, 11420677.265467953, 14896233.027498951, 20309180.95905017, 22189798.33029695, 26489698.039047025, 28942627.400982425, 30253059.877816208, 33054474.176812675, 34551078.33323037, 34551078.33323037, 34551078.33323037, 34551078.33323037, 34551078.33323037, 33054474.176812675, 253423.29584824733, 162756.47818676993, 119377.94337766837, 73347.36026464758, 51468.19574620963]
 y = [-0.000006614946304329913, 6.409472670790406e-7, 0.0000014296313509278393, 0.000002218315434776638, 0.000002849262701855678, 0.0000036379467857044774, 0.000004268894052783516, 0.000004794685046597926, 0.000004794685046597926, 0.000004163737779518886, 0.0000032173168789003275, 0.0000022708959782817682, 0.0000012718945341580796, 3.780541770446496e-7, -5.157909938144078e-7, -0.000001462211894432968, -0.000002356052251546398, -0.0000030921557918900665, -0.000004038576692508627, -0.000004827260776357425, -0.000005668525403711354, -0.0000063520532142955235, -2.0031736027488833e-7, -9.890014441236888e-7, -0.0000017251049844673573, -0.0000026189453415807873, -0.000003670527329209606]
 """
 
+#Radiació de curvatura
 x2 = [91.38064031403975, 143.41124711707917, 325.42897873361665, 835.0421424203932, 2973.7908453421987, 7630.668566358315, 12476.298173503372, 18039.65018323842, 24031.663174227924, 32013.850754225157, 44431.17228141686, 56813.21278921525, 66930.28098621606, 69729.53796180403, 85582.35356986578, 100822.89271839082, 118777.47306640366, 134312.01677685397]
 y2 = [0.000007545003984212426, 0.00001573289719840635, 0.00003530793742217019, 0.00008528077408914708, 0.00012775659273060922, 0.00007362436798086763, 0.00003530793742217019, 0.00001573289719840635, 0.000006513732499309725, 0.0000022442107754792045, 8.02149475022789e-7, 2.3859397545156373e-7, 9.521881042259686e-8, 3.800021287685452e-8, 8.424246985134803e-9, 2.5995202050740402e-9, 8.633158520511537e-10, 2.5678750360758687e-10]
 
+#Dades experimentals
 x = [108.57105939203441, 218.41711189283046, 439.3975286702991, 610.5401639918168, 1228.2501438265476, 2371.3741520050517, 3433.3209414598523, 9210.557634784978, 12798.061370079453, 22758.50332098324, 34333.31281068948, 71968.81499932126, 78137.24604821566, 117877.28186263177, 209618.50651936233, 329501.72436413093, 477058.91099048086, 636169.1203944023, 1085715.4984275685, 2096183.4870063816, 2912645.029041295]
 y = [0.0002137189267770382, 0.00022159005881784106, 0.00022159005881784106, 0.00022159005881784106, 0.00018493367035466994, 0.00015434114063286706, 0.00011146035613731978, 0.00005215277739701573, 0.000024402507622277154, 0.000012274542945270864, 0.00001319529752225786, 0.000009190742948669466, 0.0000016196597796793656, 0.0000012127458765828707, 5.091038668057519e-7, 2.3821187691854446e-7, 2.061273863385585e-7, 1.5434114063286723e-7, 1.3847178134144655e-7, 1.335531054735925e-7, 1.8493336418610452e-7]
 
@@ -447,6 +431,8 @@ spec = np.sum(secitr_units, axis = 1)*delta_phase
 
 SED = (spec*E_fotof**2).to('MeV')
 
+
+#Plotejo la SED
 plt.plot(E_fotof.to('MeV') , SED , label = "Theoretical SED")
 plt.plot(E_fotof.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
@@ -476,7 +462,14 @@ Es = []
 adjusts = []
 inc_adjusts = []
 
+r_mesh, phase_mesh = np.meshgrid(R/Rl, phase)
+
+rho2 = np.transpose(rho, axes = [1,0,2])
+
 for i in range(9):
+    
+    #plt.contourf(r_mesh, phase_mesh, rho2[i])
+    #plt.show()
     
     x_initial = 0.3
     gamma_initial1 = 0.3
@@ -501,20 +494,20 @@ for i in range(9):
     plt.axvline(phase[ids])
     print(phase[ids], E_fotof[i].to('GeV'),i)
 
-    if (i+1)%3 == 0:
-        plt.xlabel("Phase(rad)")
-        plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 15)
+    if (i+1)%1 == 0:
+        plt.xlabel("Phase(rad)", fontsize = 25)
+        plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 25)
         plt.legend()
         plt.show()
-plt.xlabel("Phase(rad)")
-plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 15)
+plt.xlabel("Phase(rad)", fontsize = 25)
+plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 25)
 plt.legend()
 plt.show()    
 
 #Ho torno a transposar per conveniencia
 seci_units = np.transpose(secitr_units)
 
-#Calculo el flux per compararho despres
+#Calculo el flux per comparar-ho desprès
 flux = []
 for j in range(len(phase)):
     aux = 0
@@ -601,6 +594,8 @@ plt.legend(fontsize = 20)
 plt.savefig("Flux_obtained")
 plt.show()
 
+
+#Dades Aharonian
 x1 = [0.14364259957498768, 0.1876288679254484, 0.2206185534575859, 0.24536081760668915, 0.2632302096289865, 0.27835056606165837, 0.2934707966486671, 0.30034360585264125, 0.31821306079777023, 0.32920958069326167, 0.33470790356383906, 0.3429553249468734, 0.36082477989200235, 0.36769758909597655, 0.38006872117052815, 0.3841924318620454, 0.3910652410660197, 0.3910652410660197, 0.3979381761156571, 0.40756008383208847, 0.4158075052151229, 0.44604809223480346, 0.4817868762793981, 0.42955324946873463]
 y1 = [0.10421694023096655, 0.12409639949634975, 0.15843379773357388, 0.20542168575026074, 0.2487951717523466, 0.2993976272403529, 0.34457839697809856, 0.39879525448070585, 0.5036144847429602, 0.5596385432528681, 0.6084337150052147, 0.6698795419937424, 0.6481927989926995, 0.5975903435046932, 0.4981927989926995, 0.43674705473253095, 0.38975900125912566, 0.33734942749217806, 0.28493985372523045, 0.2325301145015644, 0.17108445296975508, 0.07530122774400316, 0.03915671122783776, 0.12048199748174875]
 
