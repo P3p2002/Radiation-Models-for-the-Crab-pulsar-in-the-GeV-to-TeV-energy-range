@@ -34,6 +34,6 @@ Finally, the theoretical flux that our model gives, is compared to the experimen
 
 Please, note that we are currently working to improve the results, as the theoretical flux does not look anything like the experimental flux.
 
-
+We are now implementing an anisotropy part which will make the results much more accurate and are based on result from PIC simulations.
 
 
