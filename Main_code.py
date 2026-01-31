@@ -7,7 +7,7 @@ Created on Tue Nov 14 16:14:49 2023
 
 import numpy as np
 import math as m
-#from Model_delta_t_E import *
+from Model_delta_t_E import *
 from calculation_angles import *
 from Change_dimensions import *
 from xsection_jacobians_stuff import *
@@ -19,7 +19,7 @@ from constants import *
 import astropy.units as u
 import matplotlib.pyplot as plt
 import pandas as pd
-#import scienceplots
+import scienceplots
 import os
 
 SetUp()
