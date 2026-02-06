@@ -57,17 +57,19 @@ E_fotoi1 = np.logspace(-5,2,30)*(u.keV)#Energies inicials dels fotons
 
 logE = np.log(E_fotoi1/E0)
 
-E_fotoi = (E_fotoi1[1:] + E_fotoi1[:-1])/2#Bins d'energies dels fotons
+E_fotoi = (E_fotoi1[1:] + E_fotoi1[:-1])/2  #Bins d'energies dels fotons
 
-Delta_E = E_fotoi1[1:] - E_fotoi1[:-1]#Espaiat d'energies dels fotons
+Delta_E = E_fotoi1[1:] - E_fotoi1[:-1]      #Espaiat d'energies dels fotons
 
-Delta_log = np.log((E_fotoi1[1:])/E0) -np.log((E_fotoi1[:-1])/E0)#Espaiat logaritmic
+Delta_log = np.log((E_fotoi1[1:])/E0) -np.log((E_fotoi1[:-1])/E0) #Espaiat logaritmic
 
 steps = 30 #Numero de energia final dels fotons que tindrè
 #El logspace em genera un conjunt de 10**n sent n valors entre 1 i 6 espaiats
 #pels steps que li doni
 
-E_fotof1 = np.logspace(6,9, steps)*(u.keV)#Energies finals dels fotons
+E_foto_lowlim = 6  # 10^6 keV --> 1 GeV
+E_foto_uplim  = 9  # 10^9 keV --> 1 TeV
+E_fotof1 = np.logspace(6,9, steps)*(u.keV)   #Energies finals dels fotons
 
 E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2#Bins de les energies finals dels fotons
 
@@ -86,7 +88,11 @@ Gamma_2d = add_dimension_R(Gamma, E_fotoi)#Factor gamma dels positrons en 2 dime
 
 Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)#Factor gamma dels positrons en 3 dimensions
 
+print ('Gamma_3d: ', Gamma_3d,'\n')
+
 beta = beta_f(Gamma_3d)#Valor de la beta dels positrons en 3 dimensions
+
+print ('beta_3d: ', beta,'\n')
 
 beta1d = beta_f(Gamma)#Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
 
@@ -124,7 +130,7 @@ for j in range(len(E_fotof)):
                 auxiliar2.append(10000)
         auxiliar.append(np.array(auxiliar2))
     theta_f_e.append(np.array(auxiliar))
-theta_f_e = np.array(theta_f_e)*u.rad#Obtinc un valor 
+theta_f_e = np.array(theta_f_e)*u.rad  #Obtinc un valor 
 
 comprovacions = equation_solve(theta_f_e, theta, Gamma_3d, beta, E_fotof_3d, E_fotoi_3d, m)
 

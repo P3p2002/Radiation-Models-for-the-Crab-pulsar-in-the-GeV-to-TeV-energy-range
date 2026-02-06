@@ -18,8 +18,14 @@ from scipy.optimize import bisect
 
 #Per solucionar això ho haurè de fer elements per element de la funció, 
 # és a dir, que haurè de fer un bucle tridimensional
-def equation_solve(thetaf, theta_i, gamma, Beta, E_foto_f, E_fotoi, m):
-    eq = E_foto_f*(m*gamma*(1-Beta*np.cos(thetaf)) + E_fotoi*(1 - np.cos(thetaf + theta_i))) - E_fotoi*m*gamma*(1-Beta*np.cos(theta_i))
+def equation_solve(theta_f, theta_i, gamma, beta, E_foto_f, E_foto_i, m):
+
+    # this solves Eq. (3.19) for theta_f, given the input values gamma, beta, theta_i, and the ingoing and outgoing photon energies
+    # considering that: theta_f --> theta_L'
+    #                   theta_i --> theta_L
+    #                   E_foto_f --> E_gamma
+    #                   E_foto_i --> epsilon
+    eq = E_foto_f*(m*gamma*(1-beta*np.cos(theta_f)) + E_foto_i*(1 - np.cos(theta_f + theta_i))) - E_foto_i*m*gamma*(1-beta*np.cos(theta_i))
     
     return eq
 
