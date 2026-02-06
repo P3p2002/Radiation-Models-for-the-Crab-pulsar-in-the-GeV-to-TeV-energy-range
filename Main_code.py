@@ -6,6 +6,7 @@ Created on Tue Nov 14 16:14:49 2023
 """
 
 import numpy as np
+import mpmath as mp
 import math as m
 from Model_delta_t_E import *
 from calculation_angles import *
@@ -24,12 +25,13 @@ import os
 
 SetUp()
 
+mp.dps =  50  # number of digits for internal calculation
 
 delta_R = 0.05          # Step width for the integral (in units of RLC)
 
 R  = np.arange(1, 10, delta_R)*RLC  # array de distancies respecte l'estrella de neutrons
-a  = np.arcsin(RLC/R)             # array d'angles que s'obté a partir de la simplificació per a R>>RLC
-w  = 1.-np.cos(a)                # pesos per a l'eficiencia de la dispersió IC
+a  = np.arcsin(RLC/R)               # array d'angles que s'obté a partir de la simplificació per a R>>RLC
+w  = 1.-np.cos(a)                   # pesos per a l'eficiencia de la dispersió IC
 
 #Si nomes vull graficar una alpha necessito posarla com una llista o array
 #alpha = np.array([1,3,10])
@@ -81,10 +83,16 @@ E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)#Energia final dels fotons en 3 Di
 
 Gamma = gammaw(R.value, Ri.value, Rf.value,
                gamma_0, gamma_w, alpha)       # array de factors gamma per a cada distància, segons el model de vent
+
+print ('R: ', R,'\n')
+print ('Gamma: ', Gamma,'\n')
+
 M_i   = M(R.value, Ri.value, Rf.value,
                gamma_w, alpha, Omega)                # array de moments angulars que s'emporten els electrons
 
-Gamma_2d = add_dimension_R(Gamma, E_fotoi)#Factor gamma dels positrons en 2 dimensions
+Gamma_2d = add_dimension_R(Gamma, E_fotoi)    #Factor gamma dels positrons en 2 dimensions
+
+print ('Gamma_2d: ', Gamma_2d,'\n')
 
 Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)#Factor gamma dels positrons en 3 dimensions
 
