@@ -315,7 +315,7 @@ for l in range(len(phase)):
 first_int = np.array(first_int)*first.unit*E_fotoi.unit
 first_intu = first_int.value
 
-folder_name = "Data"
+folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf/RLC)}"
 
 if not os.path.exists(folder_name):
         os.makedirs(folder_name)

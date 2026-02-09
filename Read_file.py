@@ -322,7 +322,7 @@ plt.show()
 
 #A partir d'aqui ho faig per veure quina és l'energia inicial més baixa dels fotons que em permet
 #tenir una energia finals dels fotons de 1 GeV
-E_i_0 = 0.02*1e-3*u.keV
+E_i_0 = 0.04*1e-3*u.keV
 
 print(E_i_0*1000/E_i_0.unit, "eV")
 
