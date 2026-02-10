@@ -156,7 +156,12 @@ rho = anisotropy(phase_3d, R_3d, sigma, theta0 )
 #rho = 1
 
 
-folder_name = "Data"
+folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf/Rl)}"
+if os.path.exists(folder_name):
+    print("The data has already been computed")
+else:
+    print("The data has to be computed")#An error wil pop up
+    
 first_int = []
 for i in range(len(phase)):
     file_name = "First_int_" + str(i)
