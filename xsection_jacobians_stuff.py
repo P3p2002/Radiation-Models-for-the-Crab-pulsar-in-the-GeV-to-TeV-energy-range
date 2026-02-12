@@ -29,7 +29,10 @@ def jacobian_obs_LR(theta_f, theta, beta, gamma):
 def jacobian_energy_angle(theta, theta_f, beta, gamma, E_foto_i):
 
     term1 = E_foto_i*m*gamma*(1-beta*np.cos(theta))
+    #I changed the sign before E_foto_i of the term2
     term2 = beta*m*gamma + E_foto_i*(np.cos(theta)-np.sin(theta)/np.tan(theta_f))
+    #I changed the sign inside the E_foto_i of the term3, 
+    #before we had E_foto_I(1-...)
     term3 = m*gamma*(1-beta*np.cos(theta_f)) + E_foto_i*(1-np.cos(theta_f+theta))
     
     jacobian = term1*term2/(term3**2)

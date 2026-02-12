@@ -27,9 +27,14 @@ SetUp()
 
 mp.dps =  50  # number of digits for internal calculation
 
+R0 = 1#Radi inicial on els positrons comencen a accelerar
+RLI = 10#Limit d'integració superior
+Ri = 1*RLC#Radi inicial on els positrons comencen a accelerar
+Rf = 2*RLC#Radi final on els positrons deixen d'accelerar
+
 delta_R = 0.05          # Step width for the integral (in units of RLC)
 
-R  = np.arange(1, 10, delta_R)*RLC  # array de distancies respecte l'estrella de neutrons
+R  = np.arange(R0, RLI, delta_R)*RLC  # array de distancies respecte l'estrella de neutrons
 a  = np.arcsin(RLC/R)               # array d'angles que s'obté a partir de la simplificació per a R>>RLC
 w  = 1.-np.cos(a)                   # pesos per a l'eficiencia de la dispersió IC
 
@@ -42,9 +47,6 @@ gamma_w = 5.5*10**5
 #Vigilar, perquè si només vull graficar un conjunt de Ri i Rf necessito posarles com a llistes
 #Ri    = np.array([1, 20, 25])*RLC        # radi on es comencen a accelerar els electronsque anirà a les funcions de gamma i del moment 
 #Rf    = np.array([30, 50, 70])*RLC         # radi final que diu el mateix model
-
-Ri = 1*RLC#Radi inicial on els positrons comencen a accelerar
-Rf = 2*RLC#Radi final on els positrons deixen d'accelerar
 
 gamma_0 = 300#Factor gamma inicials dels positrons
 
@@ -81,13 +83,13 @@ E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)#Energia inicials dels fotons en 3
 
 E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)#Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-Gamma = gammaw(R.value, Ri.value, Rf.value,
+Gamma = gammaw((R/RLC).value, (Ri/RLC).value, (Rf/RLC).value,
                gamma_0, gamma_w, alpha)       # array de factors gamma per a cada distància, segons el model de vent
 
 print ('R: ', R,'\n')
 print ('Gamma: ', Gamma,'\n')
 
-M_i   = M(R.value, Ri.value, Rf.value,
+M_i   = M((R/RLC).value, (Ri/RLC).value, (Rf/RLC).value,
                gamma_w, alpha, Omega)                # array de moments angulars que s'emporten els electrons
 
 Gamma_2d = add_dimension_R(Gamma, E_fotoi)    #Factor gamma dels positrons en 2 dimensions
@@ -167,7 +169,6 @@ print(contador, contador2)
 #Obtinc la secció eficaç segons el Peskin,
 #i li trec les unitats per poder-ho visualitzar millor en el compilador
 cross_section_exact = exact_xsection(theta, theta_f_e, beta, Gamma_3d, E_fotoi_3d, E_fotof_3d)
-
 #Declaro les variables de l'espectre que necessito per una energia major a 0.2 keV
 #Aquests valors s'obtenen del codi: "phase_a_spectra"
 E0 = 1*u.keV
