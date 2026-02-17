@@ -27,16 +27,16 @@ SetUp()
 
 mp.dps =  50  # number of digits for internal calculation
 
-R0 = 1#Radi inicial on els positrons comencen a accelerar
-RLI = 10#Limit d'integració superior
-Ri = 1*RLC#Radi inicial on els positrons comencen a accelerar
-Rf = 2*RLC#Radi final on els positrons deixen d'accelerar
+R0 =  0.9  # Radi inicial on els positrons comencen a accelerar
+RLI = 10   # Limit d'integració superior
+Ri =  0.9  # Radi inicial on els positrons comencen a accelerar (en unitats de RLC)
+Rf =  2    # Radi final on els positrons deixen d'accelerar (en unitats de RLC)
 
 delta_R = 0.05          # Step width for the integral (in units of RLC)
 
-R  = np.arange(R0, RLI, delta_R)*RLC  # array de distancies respecte l'estrella de neutrons
-a  = np.arcsin(RLC/R)               # array d'angles que s'obté a partir de la simplificació per a R>>RLC
-w  = 1.-np.cos(a)                   # pesos per a l'eficiencia de la dispersió IC
+R  = np.arange(R0+delta_R, RLI, delta_R)   # array de distancies respecte l'estrella de neutrons, en unitats de RLC
+a  = np.arcsin(1/R)                # array d'angles que s'obté a partir de la simplificació per a R>>RLC
+w  = 1.-np.cos(a)                  # pesos per a l'eficiencia de la dispersió IC
 
 #Si nomes vull graficar una alpha necessito posarla com una llista o array
 #alpha = np.array([1,3,10])
@@ -48,7 +48,7 @@ gamma_w = 5.5*10**5
 #Ri    = np.array([1, 20, 25])*RLC        # radi on es comencen a accelerar els electronsque anirà a les funcions de gamma i del moment 
 #Rf    = np.array([30, 50, 70])*RLC         # radi final que diu el mateix model
 
-gamma_0 = 300#Factor gamma inicials dels positrons
+gamma_0 = 300  # Factor gamma inicials dels positrons
 
 E0 = 1*u.keV
 
@@ -73,48 +73,56 @@ steps = 30 #Numero de energia final dels fotons que tindrè
 
 E_foto_lowlim = 6  # 10^6 keV --> 1 GeV
 E_foto_uplim  = 9  # 10^9 keV --> 1 TeV
-E_fotof1 = np.logspace(6,9, steps)*(u.keV)   #Energies finals dels fotons
+E_fotof1 = np.logspace(6,9, steps)*(u.keV)      # Energies finals dels fotons
 
-E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2#Bins de les energies finals dels fotons
+E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2        # Bins de les energies finals dels fotons
 
-Delta_Ef = E_fotof1[1:]-E_fotof1[:-1]#Espaiat d'aquesta energia
+Delta_Ef = E_fotof1[1:]-E_fotof1[:-1]           # Espaiat d'aquesta energia
     
-E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)#Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
+E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)  # Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)#Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
+E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)  # Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-Gamma = gammaw((R/RLC).value, (Ri/RLC).value, (Rf/RLC).value,
-               gamma_0, gamma_w, alpha)       # array de factors gamma per a cada distància, segons el model de vent
+Gamma = gammaw(R, Ri, Rf,
+               gamma_0, gamma_w, alpha)         # array de factors gamma per a cada distància, segons el model de vent
 
 print ('R: ', R,'\n')
 print ('Gamma: ', Gamma,'\n')
 
-M_i   = M((R/RLC).value, (Ri/RLC).value, (Rf/RLC).value,
-               gamma_w, alpha, Omega)                # array de moments angulars que s'emporten els electrons
+M_i   = M(R, Ri, Rf,
+          gamma_w, alpha, Omega)                # array de moments angulars que s'emporten els electrons
 
-Gamma_2d = add_dimension_R(Gamma, E_fotoi)    #Factor gamma dels positrons en 2 dimensions
+print ('M: ', M_i,'\n')
+
+Gamma_2d = add_dimension_R(Gamma, E_fotoi)      # Factor gamma dels positrons en 2 dimensions
 
 print ('Gamma_2d: ', Gamma_2d,'\n')
 
-Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)#Factor gamma dels positrons en 3 dimensions
+Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)   # Factor gamma dels positrons en 3 dimensions
 
 print ('Gamma_3d: ', Gamma_3d,'\n')
 
-beta = beta_f(Gamma_3d)#Valor de la beta dels positrons en 3 dimensions
+beta = beta_f(Gamma_3d, dps=None)               # Valor de la beta dels positrons en 3 dimensions
 
 print ('beta_3d: ', beta,'\n')
 
-beta1d = beta_f(Gamma)#Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
+beta1d = beta_f(Gamma, dps=None)                # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
 
-theta_1d = np.arcsin(M_i*c/(Gamma*m*R))        #Array d'angles de la colisio entre electrons i fotons
+#theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
+#print ('theta_1d: ', theta_1d,'\n')
+theta_1d = theta(R,R0,Rf,RLC,gamma_w,Gamma,alpha,Omega,P)
+print ('theta_1d: ', theta_1d,'\n')
 
-theta_2d = add_dimension_R(theta_1d, E_fotoi) #Array d'angles de la colisio de positrons i fotons en 2 dimensions
+theta_2d = add_dimension_R(theta_1d, E_fotoi)  # Array d'angles de la colisio de positrons i fotons en 2 dimensions
 
-thetau = add_dimension_R(theta_2d, E_fotof) #Array d'angles de la colisio de positrons i fotons en 3 dimensions
+thetau = add_dimension_R(theta_2d, E_fotof)    # Array d'angles de la colisio de positrons i fotons en 3 dimensions
 
-theta = thetau*u.rad #Arary en 3 dimensions i amb unitats
+theta = thetau*u.rad                           # Array en 3 dimensions i amb unitats
 
-thetaf2 = np.arccos(1/beta - E_fotoi_3d*(1/beta-np.cos(theta))/E_fotof_3d)#Primera approximacio del que val el valor final de l'angle de dispersió del foto
+thetaf2 = theta_f2(beta, theta, E_fotoi_3d, E_fotof_3d)
+#thetaf2 = np.arccos(1/beta - E_fotoi_3d*(1/beta-np.cos(theta))/E_fotof_3d)#Primera approximacio del que val el valor final de l'angle de dispersió del foto
+
+print ('theta_f2:', thetaf2)
 
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
 E_fotof_max = E_fotoi_3d[0]*m*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio

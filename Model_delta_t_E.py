@@ -18,6 +18,7 @@ from astropy.constants import eps0
 import matplotlib.pyplot as plt
 import scienceplots
 import astropy.units as u
+import mpmath as mp
 
 from scipy.optimize import fsolve
 
@@ -37,32 +38,101 @@ plt.rcParams['ytick.minor.size'] = 5
 
 #Defineixo la funció gamma de la mateixa forma que ho fa a l'article
 #On li demano les diferents variables que necesito
-def gammaw(R, R_0, R_f, gamma_0, gamma_w, alpha):
+def gammaw(R, R0, Rf, gamma0, gammaw, alpha):
 
-    gamma = np.ones(len(R))
-    
-    gamma = gamma * gamma_0
-    gamma[R>=R_0] += (gamma_w-gamma_0)*((R[R>=R_0]-R_0)/(R_f-R_0))**(alpha)
-    gamma[R>R_f]  = gamma_w
+    R = np.asarray(R)
 
-    return np.array(gamma)
+    # Handle degenerate interval safely
+    if Rf <= R0:
+        # If there's no ramp region, step at R0
+        return np.where(R < R0, gamma0, gammaw).astype(float)
+
+    # Normalized ramp coordinate, clipped to [0, 1]
+    x = np.clip((R - R0) / (Rf - R0), 0.0, 1.0)
+
+    return (gamma0 + (gammaw - gamma0) * x**alpha).astype(float)
+
+    #gamma = np.ones(len(R))    
+    #gamma = gamma * gamma_0
+    #gamma[R>=R_0] += (gamma_w-gamma_0)*((R[R>=R_0]-R_0)/(R_f-R_0))**(alpha)
+    #gamma[R>R_f]  = gamma_w
+    #return np.array(gamma)
 
 #Defineixo la funció del moment de la mateixa forma que fa a l'article
 #On li demano les diferents variables que necesito
-def M(R, R_0, R_f, gamma_w, alpha, Omega):
-    
-    M_w = gamma_w*m/Omega
-    
-    M_j = np.zeros(len(R))*M_w
-    
-    M_j[R>=R_0] = ((R[R>=R_0]-R_0)/(R_f-R_0))**(alpha)*M_w
-    M_j[R>R_f]  = M_w
- 
-    return M_j
+def M(R, R0, Rf, gamma_w, alpha, Omega):
+    """
+    Piecewise profile:
+      - M = 0                                for R < R0
+      - M = M_w * ((R-R0)/(Rf-R0))^alpha     for R0 <= R <= Rf
+      - M = M_w                              for R > Rf
+    where M_w = gamma_w * m / Omega
+    """
+    R = np.asarray(R)
 
-def beta_f(gamma):
+    M_w = gamma_w * m / Omega   # m is in reality m*c^2, then Eq. 2.5 is recovered
+
+    # Handle degenerate interval safely
+    if Rf <= R0:
+        return np.where(R < R0, 0.0, M_w).astype(float)
+
+    # Normalized ramp coordinate, clipped to [0, 1]
+    x = np.clip((R - R0) / (Rf - R0), 0.0, 1.0)
+    return (M_w * x**alpha).astype(float)    
+
+    #M_w = gamma_w*m/Omega
+    #M_j = np.zeros(len(R))*M_w    
+    #M_j[R>=R_0] = ((R[R>=R_0]-R_0)/(R_f-R_0))**(alpha)*M_w
+    #M_j[R>R_f]  = M_w 
+    #return M_j
+
+def theta(R, R0, Rf, RLC, gamma_w, Gamma, alpha, Omega, P):
+
+    R = np.asarray(R)
     
-    return np.sqrt(1-1/(gamma**2))
+    # Normalized ramp coordinate, clipped to [0, 1]
+    x = np.clip((R - R0) / (Rf - R0), 0.0, 1.0)
+
+    # M = gamma_w * x**alpha * m / Omega
+    # Gamma = (gamma_0 + (gamma_w - gamma_0) * x**alpha)
+    # RLC = c*P/(2*np.pi)   # Radius of the light cylinder
+    # theta = arcsin(M*c/(Gamma*m*R*RLC)    
+
+    arg = gamma_w * x**alpha / (Gamma * R)
+    print ('arg of theta: ', arg)
+    print ('x: ', x)
+    print ('Gamma: ', Gamma)
+    print ('gamma_w: ', gamma_w)
+    
+    return np.arcsin(arg)
+
+def theta_f2(beta, theta, E_fotoi, E_fotof):
+    """
+    Not clear which formula is implemented here!!
+    """
+    arg = 1/beta - E_fotoi * (1/beta-np.cos(theta))/E_fotof
+    print ('arg=',arg)
+    return np.arccos(arg)
+    
+
+
+def beta_f(gamma, dps=None):
+    """
+    beta = sqrt(1 - 1/gamma^2)
+
+    - If gamma is array-like -> uses NumPy (fast)
+    - If gamma is scalar and dps is set -> uses mpmath at given precision
+    """
+    if np.isscalar(gamma):
+        if dps is None:
+            return float(np.sqrt(1.0 - 1.0/(gamma*gamma)))
+        with mp.workdps(dps):
+            g = mp.mpf(gamma)
+            return mp.sqrt(1 - 1/(g*g))
+    else:
+        g = np.asarray(gamma, dtype=float)
+        return np.sqrt(1.0 - 1.0/(g*g))   
+
 
 #Aquesta es la seccio eficaç que vam obtenir nosaltres
 

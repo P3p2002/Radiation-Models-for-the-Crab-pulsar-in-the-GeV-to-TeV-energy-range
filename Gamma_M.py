@@ -38,10 +38,9 @@ plt.rcParams['ytick.minor.size'] = 5
 #On li demano les diferents variables que necesito
 def gammaw(R, R_0, R_f, gamma_0, gamma_w, alpha):
 
-    gamma = np.ones(len(R))
+    gamma = gamma_0 * np.ones(len(R))
     
-    gamma = gamma * gamma_0
-    gamma[R>=R_0] += (gamma_w-gamma_0)*((R[R>=R_0]-R_0)/(R_f-R_0))**(alpha)
+    gamma[R>=R_0] += (gamma_w-gamma_0)*((R[R>=R_0]-R_0)/(R_f-R_0))**alpha
     gamma[R>R_f]  = gamma_w
 
     return np.array(gamma)
