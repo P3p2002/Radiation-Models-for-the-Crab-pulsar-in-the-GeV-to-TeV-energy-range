@@ -34,7 +34,7 @@ Rf =  2    # Radi final on els positrons deixen d'accelerar (en unitats de RLC)
 
 delta_R = 0.05          # Step width for the integral (in units of RLC)
 
-R  = np.arange(R0+delta_R, RLI, delta_R)   # array de distancies respecte l'estrella de neutrons, en unitats de RLC
+R  = np.arange(1., RLI, delta_R)   # array de distancies respecte l'estrella de neutrons, en unitats de RLC
 a  = np.arcsin(1/R)                # array d'angles que s'obté a partir de la simplificació per a R>>RLC
 w  = 1.-np.cos(a)                  # pesos per a l'eficiencia de la dispersió IC
 
@@ -78,7 +78,7 @@ E_fotof1 = np.logspace(6,9, steps)*(u.keV)      # Energies finals dels fotons
 E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2        # Bins de les energies finals dels fotons
 
 Delta_Ef = E_fotof1[1:]-E_fotof1[:-1]           # Espaiat d'aquesta energia
-    
+
 E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)  # Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
 E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)  # Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
@@ -86,32 +86,32 @@ E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)  # Energia final dels fotons en 3
 Gamma = gammaw(R, Ri, Rf,
                gamma_0, gamma_w, alpha)         # array de factors gamma per a cada distància, segons el model de vent
 
-print ('R: ', R,'\n')
-print ('Gamma: ', Gamma,'\n')
+#print ('R: ', R,'\n')
+#print ('Gamma: ', Gamma,'\n')
 
 M_i   = M(R, Ri, Rf,
-          gamma_w, alpha, Omega)                # array de moments angulars que s'emporten els electrons
+          gamma_w, alpha)                       # array de moments angulars que s'emporten els electrons
 
-print ('M: ', M_i,'\n')
+#print ('M: ', M_i,'\n')
 
 Gamma_2d = add_dimension_R(Gamma, E_fotoi)      # Factor gamma dels positrons en 2 dimensions
 
-print ('Gamma_2d: ', Gamma_2d,'\n')
+#print ('Gamma_2d: ', Gamma_2d,'\n')
 
 Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)   # Factor gamma dels positrons en 3 dimensions
 
-print ('Gamma_3d: ', Gamma_3d,'\n')
+#print ('Gamma_3d: ', Gamma_3d,'\n')
 
 beta = beta_f(Gamma_3d, dps=None)               # Valor de la beta dels positrons en 3 dimensions
 
-print ('beta_3d: ', beta,'\n')
+#print ('beta_3d: ', beta,'\n')
 
 beta1d = beta_f(Gamma, dps=None)                # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
 
 #theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
 #print ('theta_1d: ', theta_1d,'\n')
-theta_1d = theta(R,R0,Rf,RLC,gamma_w,Gamma,alpha,Omega,P)
-print ('theta_1d: ', theta_1d,'\n')
+theta_1d = theta(R,R0,Rf,RLC,gamma_w,Gamma,alpha)
+#print ('theta_1d: ', theta_1d,'\n')
 
 theta_2d = add_dimension_R(theta_1d, E_fotoi)  # Array d'angles de la colisio de positrons i fotons en 2 dimensions
 
@@ -119,36 +119,38 @@ thetau = add_dimension_R(theta_2d, E_fotof)    # Array d'angles de la colisio de
 
 theta = thetau*u.rad                           # Array en 3 dimensions i amb unitats
 
-thetaf2 = theta_f2(beta, theta, E_fotoi_3d, E_fotof_3d)
-#thetaf2 = np.arccos(1/beta - E_fotoi_3d*(1/beta-np.cos(theta))/E_fotof_3d)#Primera approximacio del que val el valor final de l'angle de dispersió del foto
+theta_init = theta_init(beta, theta, E_fotoi_3d, E_fotof_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
-print ('theta_f2:', thetaf2)
+print ('theta_init:', theta_init)
 
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
-E_fotof_max = E_fotoi_3d[0]*m*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
-E_fotof_min = E_fotoi_3d[0]*m*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
+E_fotof_max = E_fotoi_3d[0]*m_keV*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
+E_fotof_min = E_fotoi_3d[0]*m_keV*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
 
+print ('E_f,max: ',E_fotof_max,' E_f,min: ',E_fotof_min)
 
 #A partir d'aqui comença un calcul numeric del valor de l'angle de dispersió dels fotons
 
-theta_f_e = []
+#theta_f_e = []
+#for j in range(len(E_fotof)):
+#    print(j)
+#    auxiliar = []
+#    for k in range(len(E_fotoi)):
+#        auxiliar2 = []
+#        for i in range(len(R)):
+#            if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
+#                theta_fexacte1 = solver(theta_init[j][k][i],theta[j][k][i], Gamma_3d[j][k][i], beta[j][k][i], E_fotof_3d[j][k][i], E_fotoi_3d[j][k][i])
+#                theta_fexacte2 = solver(theta_fexacte1,theta[j][k][i], Gamma_3d[j][k][i], beta[j][k][i], E_fotof_3d[j][k][i], E_fotoi_3d[j][k][i])                
+#                theta_fexacte3 = solver(theta_fexacte2,theta[j][k][i], Gamma_3d[j][k][i], beta[j][k][i], E_fotof_3d[j][k][i], E_fotoi_3d[j][k][i])                
+#                auxiliar2.append(float(theta_fexacte3))
+#            else:
+#                auxiliar2.append(10000)
+#        auxiliar.append(np.array(auxiliar2))
+#    theta_f_e.append(np.array(auxiliar))
+#theta_f_e = np.array(theta_f_e)*u.rad  #Obtinc un valor 
 
-for j in range(len(E_fotof)):
-    print(j)
-    auxiliar = []
-    for k in range(len(E_fotoi)):
-        auxiliar2 = []
-        for i in range(len(R)):
-            if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
-                theta_fexacte1 = solver(thetaf2[j][k][i],theta[j][k][i], Gamma_3d[j][k][i], beta[j][k][i], E_fotof_3d[j][k][i], E_fotoi_3d[j][k][i])
-                theta_fexacte2 = solver(theta_fexacte1,theta[j][k][i], Gamma_3d[j][k][i], beta[j][k][i], E_fotof_3d[j][k][i], E_fotoi_3d[j][k][i])                
-                theta_fexacte3 = solver(theta_fexacte2,theta[j][k][i], Gamma_3d[j][k][i], beta[j][k][i], E_fotof_3d[j][k][i], E_fotoi_3d[j][k][i])                
-                auxiliar2.append(float(theta_fexacte3))
-            else:
-                auxiliar2.append(10000)
-        auxiliar.append(np.array(auxiliar2))
-    theta_f_e.append(np.array(auxiliar))
-theta_f_e = np.array(theta_f_e)*u.rad  #Obtinc un valor 
+theta_f_e = compute_theta_f_exact(theta_init, theta, Gamma_3d, beta, E_fotof_3d, E_fotoi_3d, E_fotof_min, E_fotof_max, fill_value=np.nan)
+
 
 comprovacions = equation_solve(theta_f_e, theta, Gamma_3d, beta, E_fotof_3d, E_fotoi_3d, m)
 

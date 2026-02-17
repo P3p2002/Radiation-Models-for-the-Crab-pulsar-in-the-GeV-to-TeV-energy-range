@@ -10,6 +10,7 @@ import numpy as np
 from calculation_angles import *
 from Change_dimensions import *
 from Power_law_X_ray import *
+from constants import m_keV, Omega, P
 from astropy.constants import c
 from astropy.constants import m_e
 from astropy.constants import hbar
@@ -21,9 +22,6 @@ import astropy.units as u
 import mpmath as mp
 
 from scipy.optimize import fsolve
-
-m = m_e*c**2
-m = m.to('keV')
 
 plt.style.use(["science","no-latex"])
 plt.rcParams["figure.figsize"] = (7,7)
@@ -60,7 +58,7 @@ def gammaw(R, R0, Rf, gamma0, gammaw, alpha):
 
 #Defineixo la funció del moment de la mateixa forma que fa a l'article
 #On li demano les diferents variables que necesito
-def M(R, R0, Rf, gamma_w, alpha, Omega):
+def M(R, R0, Rf, gamma_w, alpha):
     """
     Piecewise profile:
       - M = 0                                for R < R0
@@ -70,7 +68,7 @@ def M(R, R0, Rf, gamma_w, alpha, Omega):
     """
     R = np.asarray(R)
 
-    M_w = gamma_w * m / Omega   # m is in reality m*c^2, then Eq. 2.5 is recovered
+    M_w = gamma_w * m_keV / Omega   # m is in reality m*c^2, then Eq. 2.5 is recovered
 
     # Handle degenerate interval safely
     if Rf <= R0:
@@ -86,7 +84,7 @@ def M(R, R0, Rf, gamma_w, alpha, Omega):
     #M_j[R>R_f]  = M_w 
     #return M_j
 
-def theta(R, R0, Rf, RLC, gamma_w, Gamma, alpha, Omega, P):
+def theta(R, R0, Rf, RLC, gamma_w, Gamma, alpha):
 
     R = np.asarray(R)
     
@@ -99,22 +97,64 @@ def theta(R, R0, Rf, RLC, gamma_w, Gamma, alpha, Omega, P):
     # theta = arcsin(M*c/(Gamma*m*R*RLC)    
 
     arg = gamma_w * x**alpha / (Gamma * R)
-    print ('arg of theta: ', arg)
-    print ('x: ', x)
-    print ('Gamma: ', Gamma)
-    print ('gamma_w: ', gamma_w)
+    #print ('arg of theta: ', arg)
+    #print ('x: ', x)
+    #print ('Gamma: ', Gamma)
+    #print ('gamma_w: ', gamma_w)
     
     return np.arcsin(arg)
 
-def theta_f2(beta, theta, E_fotoi, E_fotof):
+def theta_init(beta, theta, E_fotoi, E_fotof):
     """
-    Not clear which formula is implemented here!!
+    An approximation of Eq. 3.19, assuming that epsilon-->0, 
+    used for initialization only
     """
     arg = 1/beta - E_fotoi * (1/beta-np.cos(theta))/E_fotof
-    print ('arg=',arg)
+    #print ('arg=',arg)
+
+    arg = np.where(arg > 1, 1., arg)
+    
     return np.arccos(arg)
     
+def theta_init_mp(beta, theta, E_fotoi, E_fotof, dps=50):
+    """
+    mpmath version of:
+        arg = 1/beta - E_fotoi * (1/beta - cos(theta)) / E_fotof
+        return arccos(arg)
 
+    beta, theta, E_fotoi, E_fotof: 3D arrays with same shape
+    Returns: array of mp.mpf with same shape
+    """
+    beta = np.asarray(beta)
+    theta = np.asarray(theta)
+    E_fotoi = np.asarray(E_fotoi)
+    E_fotof = np.asarray(E_fotof)
+
+    out = np.empty(beta.shape, dtype=object)
+
+    with mp.workdps(dps):
+        it = np.nditer(beta, flags=["multi_index"])
+        for b in it:
+            idx = it.multi_index
+
+            b_mp  = mp.mpf(beta[idx])
+            th_mp = mp.mpf(theta[idx])
+            Ei_mp = mp.mpf(E_fotoi[idx])
+            Ef_mp = mp.mpf(E_fotof[idx])
+
+            arg = 1/b_mp - Ei_mp * (1/b_mp - mp.cos(th_mp)) / Ef_mp
+
+            #print (arg)
+            
+            # Optional safety: clamp to [-1, 1] to avoid acos domain errors
+            if arg > 1:
+                #print ('beta: ',b_mp,' E_i: ',Ei_mp,' E_f: ',Ef_mp,' theta: ',th_mp, ' arg=',arg)
+                arg = mp.mpf(1)
+            if arg < -1: arg = mp.mpf(-1)
+
+            out[idx] = mp.acos(arg)
+
+    return out
 
 def beta_f(gamma, dps=None):
     """

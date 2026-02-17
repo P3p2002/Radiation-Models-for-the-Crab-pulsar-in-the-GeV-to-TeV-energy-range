@@ -67,7 +67,7 @@ def add_dim_e_fi(E_fotof, E_fotoi, R):
 
     # Reshape E_fotoi to (1, n_i, 1) and broadcast to (n_f, n_i, n_r)
     base = E_fotoi.reshape(1, n_i, 1)
-    return np.broadcast_to(base, (n_f, n_i, n_r))
+    return np.broadcast_to(base, (n_f, n_i, n_r)) * E_fotoi.unit
 
     #ones = np.ones(len(R))
     #new_array = []#És l'array que tornarè
@@ -110,7 +110,7 @@ def add_dim_e_ff(E_fotof, E_fotoi, R):
 
     # Reshape E_fotof to (n_f, 1, 1) and broadcast to (n_f, n_i, n_r)
     base = E_fotof.reshape(n_f, 1, 1)
-    return np.broadcast_to(base, (n_f, n_i, n_r))    
+    return np.broadcast_to(base, (n_f, n_i, n_r)) * E_fotof.unit
 
     ##El nom d'això també ve donat perque els arrays que tinguin això només 
     ##tindran components que variïn en E_ff(energia fotó final)
