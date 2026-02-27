@@ -127,3 +127,32 @@ def add_dim_e_ff(E_fotof, E_fotoi, R):
     #    #Aquest array ja té les dimenions que toquen de E_ff, E_fi i R
     #    
     #return np.array(new_array)*(E_fotoi.unit)
+
+
+def add_dim_phase(phase, E_fotof, R):
+    """
+    Build a 3D array with shape (len(E_fotof), len(E_fotoi), len(R)),
+    whose values are E_fotof broadcast over the other axes.
+
+    Parameters
+    ----------
+    E_fotof : astropy.units.Quantity or array-like
+        Final photon energy grid; values fill the output.
+    E_fotoi : astropy.units.Quantity or array-like
+        Initial photon energy grid (used only for its length and unit).
+    R : array-like
+        Radius grid (used only for its length).
+
+    Returns
+    -------
+    out : same type as E_fotof (if Quantity) or ndarray
+        3D array broadcast from E_fotof.
+    """
+    n_f = len(phase)
+    n_i = len(E_fotof)
+    n_r = len(R)
+
+    # Reshape E_fotof to (n_f, 1, 1) and broadcast to (n_f, n_i, n_r)
+    base = phase.reshape(n_f, 1, 1)
+    return np.broadcast_to(base, (n_f, n_i, n_r)) 
+
