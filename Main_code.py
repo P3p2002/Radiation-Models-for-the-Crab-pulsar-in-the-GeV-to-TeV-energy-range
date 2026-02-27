@@ -164,7 +164,7 @@ for j in range(len(E_fotof)):
             if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
                 contador += 1 
 
-                if abs(comprovacions[j][k][i]/E_fotoi[k]**2) < 0.1 :
+                if abs(comprovacions[j][k][i]/m_keV**2) < 0.1 :
                     contador2 += 1
             else:
                 comprovacions[j][k][i] = 99999999*u.keV*u.keV
@@ -212,7 +212,7 @@ spectra = np.array(spectra)*(1/E0).unit
 #Inicialtzo la variable de la fase
 delta_phase = 0.004
 phase = np.arange(0.2,0.5,delta_phase)
-phase_3d = add_dim_e_ff(phase, E_fotof, R).value#El poso en les dimensions que em conve
+phase_3d = add_dim_phase(phase, E_fotof, R) #El poso en les dimensions que em conve
 time = phase_3d*P
 
 
