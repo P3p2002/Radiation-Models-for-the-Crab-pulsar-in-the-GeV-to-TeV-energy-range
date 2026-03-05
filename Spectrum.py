@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scienceplots
 from sklearn.metrics import r2_score
+from scipy.stats import chisquare
 
 plt.style.use(["science","no-latex"])
 plt.rcParams["figure.figsize"] = (7,7)
@@ -99,6 +100,7 @@ plt.xscale("log")
 plt.yscale("log")
 plt.legend(fontsize = 15)
 plt.savefig("Fit_spectra")
+plt.show()
 
 """
 #Points that range from 6e-6 MeV to 2e-4 MeV , aquest no el necessitaria realment
@@ -201,3 +203,115 @@ plt.xscale('log')
 plt.yscale('log')
 plt.show()
 """
+
+"""New data from new intervals"
+See the Images in Phase-averaged data points to see which are the points I picked
+"""
+
+Interval1_x = np.array([0.0002667081203203039, 0.0004726690594705515, 0.0008041296816902958, 0.001313241560526797, 0.00242446969400004, 0.0050599162580998065, 0.010137196874375027, 0.018715008222992272, 0.03599267967760236, 0.07511743517519734, 0.14446521383767086, 0.26670762128954245])
+Interval1_y = np.array([0.00011885714285714287, 0.00012592857142857143, 0.00013142859540666852, 0.00013535714285714288, 0.00014007142857142858, 0.0001447857142857143, 0.00014714285714285716, 0.0001463571548461914, 0.0001463571548461914, 0.0001463571548461914, 0.0001447857142857143, 0.00014242857142857145])
+
+Interval2_x = np.array([9.864696863955751e-7, 0.0000014845644165824624, 0.0000023273663025213804, 0.000003648641972388036, 0.0000054909278823393844, 0.000008608197994941636, 0.000014644723141711609, 0.00002491442660933309, 0.000040688212369234625, 0.00007210887716651577])
+Interval2_y = np.array([0.000027714309692382815, 0.00003635714285714286, 0.00004342857142857143, 0.00005207144056047712, 0.00005992857142857143, 0.000067, 0.00007407142857142858, 0.00008507144056047712, 0.00009371430969238281, 0.0001])
+
+Interval3_x = np.array([0.26670762128954245, 0.4923881214328519, 0.8041281771037602, 1.3680280780375946, 2.144671133272383, 4.857259557347665, 10.56010590403258, 19.495770998511137, 56.426079517610994, 266.70762128954254, 108.51815726297065, 579.8477994890866, 1260.6396875707912, 2144.6711332723885, 3959.4316251534106])
+Interval3_y = np.array([0.00014242857142857145, 0.00013928572627476286, 0.00013457144056047712, 0.00013221429770333428, 0.0001298571548461914, 0.0001251428691319057, 0.00011964288112095425, 0.00011414285714285714, 0.00011178571428571429, 0.00011492859540666853, 0.00011257145254952568, 0.0001172857382638114, 0.00011650000000000001, 0.00011100001198904856, 0.00010471428571428573])
+
+
+#The same, but in keV
+Interval1_x = Interval1_x*1e3
+Interval1_y = Interval1_y*1e3
+
+Interval2_x = Interval2_x*1e3
+Interval2_y = Interval2_y*1e3
+
+Interval3_x = Interval3_x*1e3
+Interval3_y = Interval3_y*1e3
+
+Interval4_x = np.concatenate((Interval1_x, Interval2_x, Interval3_x))
+Interval4_y = np.concatenate((Interval1_y, Interval2_y, Interval3_y))
+
+Interval5_x = np.array([0.0003271853804208322, 0.0004923890427294296, 0.0008376783634649435, 0.0014845644165824609, 0.0026309898353280375, 0.005271008565113246, 0.008608181888361908, 0.015892183689649276, 0.02491442660933299, 0.04068821236923446, 0.06922081610066043, 0.12779352700555732, 0.22648039048935018, 0.418121737486331, 0.7719246111367359, 1.4251055418951637, 2.5256150242555337, 4.475971121593273, 8.26341220206979, 17.965446050901146, 40.68806010802438, 84.91678710632308, 177.2230161210985, 418.1201728139572, 909.0331238227634, 2327.357593178068, 4857.241380775751, 7932.451022396987, 14058.181561981528, 22958.677150727053, 37494.24164052572, 66448.42590707334])
+Interval5_y = np.array([0.00012042858341762, 0.00012671430969238282, 0.00013064285714285717, 0.00013535714285714288, 0.0001416428691319057, 0.00014557145254952568, 0.00014557145254952568, 0.0001463571548461914, 0.0001463571548461914, 0.0001463571548461914, 0.0001447857142857143, 0.00014242857142857145, 0.00014242857142857145, 0.00014007142857142858, 0.00013535714285714288, 0.00013457144056047712, 0.00013142859540666852, 0.00012671430969238282, 0.0001235714285714286, 0.00011571429770333427, 0.00010707142857142858, 0.00011335715484619142, 0.00011571429770333427, 0.00011571429770333427, 0.00011492859540666853, 0.0001086428691319057, 0.00010157144056047713, 0.0000890000239780971, 0.00007014288112095424, 0.00005442858341761998, 0.000056785726274762836, 0.0000505])
+
+Interval5log_x = np.log10(Interval5_x)
+Interval5log_y = np.log10(Interval5_y)
+
+#Parametres inicials
+K_in = 1
+E0_in = 0.1
+alpha_in = 1
+beta_in = 0.5
+
+#El primer ajust mes grafica
+popt7, pcov7 = curve_fit(EsquaredF, Interval1_x, Interval1_y, [K_in, alpha_in, beta_in])
+
+popt8, pcov8 = curve_fit(EsquaredF, Interval2_x, Interval2_y, [K_in, alpha_in, beta_in])
+
+popt9, pcov9 = curve_fit(EsquaredF, Interval3_x, Interval3_y, [K_in, alpha_in, beta_in])
+
+E7 = np.logspace(-1, 2, 50)*2.4#en keV
+E2F7 = EsquaredF(E7, *popt7)
+
+E8 = np.logspace(-3, -1, 50)*0.7#en keV
+E2F8 = EsquaredF(E8, *popt8)
+
+E9 = np.logspace(2, 6, 50)*2.4#en keV
+E2F9 = EsquaredF(E9, *popt9)
+
+
+plt.plot(E7, E2F7, label = "Fitting 7")
+plt.plot(Interval1_x, Interval1_y, '.', label = "Interval 1")
+
+plt.plot(E8, E2F8, label = "Fitting 8")
+plt.plot(Interval2_x, Interval2_y, '.', label = "Interval 2")
+
+plt.plot(E9, E2F9, label = "Fitting 9")
+plt.plot(Interval3_x, Interval3_y, '.', label = "Interval 3")
+
+plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
+plt.xlabel(r"E (keV)")
+plt.xscale("log")
+plt.yscale("log")
+plt.legend()
+plt.show()
+
+Interval_logx = np.log10(Interval4_x)
+Interval_logy = np.log10(Interval4_y)
+
+a0in = np.log10(E0_in/K_in)
+a1in = 1 - alpha_in
+a2in = beta_in
+a3in = beta_in*alpha_in
+a4in = beta_in
+a5in = beta_in
+a6in = beta_in
+a7in = beta_in
+ains = np.array([a0in, a1in, a2in, a3in, a4in, 
+                 a5in, a6in, a7in])
+
+def polN(x, *a):
+    SedLog = sum(a[k] * x**k for k in range(len(a)))
+    return SedLog
+
+
+popt10, pcov10 = curve_fit(polN, Interval5log_x, Interval5log_y, ains)
+
+
+logE = np.logspace(-3, 6, 100)
+
+def SEDfromFIT(LogE, *a):
+    return 10**(polN(LogE, *a))
+
+SED = SEDfromFIT(np.log10(Interval5_x), *popt10)
+
+plt.plot(Interval5_x, SED, label = "Fitting quadratic")
+plt.plot(Interval5_x, Interval5_y, '.', label = "Interval 4")
+
+plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
+plt.xlabel(r"E (keV)")
+plt.xscale("log")
+plt.yscale("log")
+plt.legend()
+plt.show()
+print(np.sqrt(np.diag(pcov10)))

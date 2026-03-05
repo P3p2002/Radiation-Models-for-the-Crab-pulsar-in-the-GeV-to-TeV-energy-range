@@ -217,8 +217,8 @@ time = phase_3d*P
 
 
 #Canvio les variables segons les dimensions que em conve
-R_2d = add_dimension_R(R, E_fotof)*R.unit
-R_3d = add_dimension_R(R_2d, phase)*R.unit
+R_2d = add_dimension_R(R, E_fotof)*RLC.unit
+R_3d = add_dimension_R(R_2d, phase)*RLC.unit
 
 
 #Busco els parametres dels pulse profiles
@@ -267,7 +267,7 @@ for i in range(len(X0s)):
         
 #Declaro una funcio pel temps dels Pulse Profiles
 def Time_d(time, R, theta):
-    return time - R*(1-np.cos(theta))/c + theta.value/Omega
+    return time - R*(1-np.cos(theta))*RLC/c + theta.value/Omega
 
 #A partir d'aquí re faig les dues primeres integrals però considerant que els pulse profiles depenen de l'energia
 
@@ -326,7 +326,7 @@ for l in range(len(phase)):
 first_int = np.array(first_int)*first.unit*E_fotoi.unit
 first_intu = first_int.value
 
-folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf/RLC)}"
+folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf)}"
 
 if not os.path.exists(folder_name):
         os.makedirs(folder_name)

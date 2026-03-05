@@ -24,6 +24,11 @@ import matplotlib.pyplot as plt
 import pandas as pds
 import scienceplots
 import os
+from setup import SetUp
+from constants import *
+
+
+SetUp()
 
 m = m_e*c**2
 m = m.to('keV')
@@ -45,12 +50,18 @@ T     = 33*10**(-3)*u.s # període de Crab (s)
 Omega = 2*np.pi/T       # velocitat angular
 Rl    = c*T/(2*np.pi)   # radi de llum
 
-delta_R = 0.05  # magnitud de cada pas per a l'integral (en unitats de Rl)
+mp.dps =  50  # number of digits for internal calculation
 
-R  = np.arange(1, 10, delta_R)*Rl  # array de distancies respecte l'estrella de neutrons
-a  = np.arcsin(Rl/R)             # array d'angles que s'obté a partir de la simplificació per a R>>Rl
-w  = 1.-np.cos(a)                # pesos per a l'eficiencia de la dispersió IC
+R0 =  0.9  # Radi inicial on els positrons comencen a accelerar
+RLI = 10   # Limit d'integració superior
+Ri =  0.9  # Radi inicial on els positrons comencen a accelerar (en unitats de RLC)
+Rf =  2    # Radi final on els positrons deixen d'accelerar (en unitats de RLC)
 
+delta_R = 0.05          # Step width for the integral (in units of RLC)
+
+R  = np.arange(1., RLI, delta_R)   # array de distancies respecte l'estrella de neutrons, en unitats de RLC
+a  = np.arcsin(1/R)                # array d'angles que s'obté a partir de la simplificació per a R>>RLC
+w  = 1.-np.cos(a)     
 #Si nomes vull graficar una alpha necessito posarla com una llista o array
 #alpha = np.array([1,3,10])
 alpha = 1
@@ -60,9 +71,6 @@ gamma_w = 5.5*10**5
 #Vigilar, perquè si només vull graficar un conjunt de Ri i Rf necessito posarles com a llistes
 #Ri    = np.array([1, 20, 25])*Rl        # radi on es comencen a accelerar els electronsque anirà a les funcions de gamma i del moment 
 #Rf    = np.array([30, 50, 70])*Rl         # radi final que diu el mateix model
-
-Ri = 1*Rl#Radi inicial on els positrons comencen a accelerar
-Rf = 2*Rl#Radi final on els positrons deixen d'accelerar
 
 gamma_0 = 300#Factor gamma inicials dels positrons
 
@@ -93,33 +101,45 @@ E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2#Bins de les energies finals dels fotons
 
 Delta_Ef = E_fotof1[1:]-E_fotof1[:-1]#Espaiat d'aquesta energia
     
-E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)#Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
+E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)  # Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)#Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
+E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)  # Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-Gamma = gammaw(R.value, Ri.value, Rf.value,
-               gamma_0, gamma_w, alpha)       # array de factors gamma per a cada distància, segons el model de vent
-M_i   = M(R.value, Ri.value, Rf.value,
-               gamma_w, alpha, Omega)                # array de moments angulars que s'emporten els electrons
+Gamma = gammaw(R, Ri, Rf,
+               gamma_0, gamma_w, alpha)         # array de factors gamma per a cada distància, segons el model de vent
 
-Gamma_2d = add_dimension_R(Gamma, E_fotoi)#Factor gamma dels positrons en 2 dimensions
+M_i   = M(R, Ri, Rf,
+          gamma_w, alpha)                       # array de moments angulars que s'emporten els electrons
 
-Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)#Factor gamma dels positrons en 3 dimensions
+Gamma_2d = add_dimension_R(Gamma, E_fotoi)      # Factor gamma dels positrons en 2 dimensions
 
-beta = beta_f(Gamma_3d)#Valor de la beta dels positrons en 3 dimensions
+#print ('Gamma_2d: ', Gamma_2d,'\n')
 
-beta1d = beta_f(Gamma)#Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
+Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)   # Factor gamma dels positrons en 3 dimensions
+
+#print ('Gamma_3d: ', Gamma_3d,'\n')
+
+beta = beta_f(Gamma_3d, dps=None)               # Valor de la beta dels positrons en 3 dimensions
+
+#print ('beta_3d: ', beta,'\n')
+
+beta1d = beta_f(Gamma, dps=None)                # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
 
 
-theta_1d = np.arcsin(M_i*c/(Gamma*m*R))        #Array d'angles de la colisio entre electrons i fotons
+#theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
+#print ('theta_1d: ', theta_1d,'\n')
+theta_1d = theta(R,R0,Rf,RLC,gamma_w,Gamma,alpha)*u.rad
+#print ('theta_1d: ', theta_1d,'\n')
 
-theta_2d = add_dimension_R(theta_1d, E_fotoi) #Array d'angles de la colisio de positrons i fotons en 2 dimensions
+theta_2d = add_dimension_R(theta_1d, E_fotoi)  # Array d'angles de la colisio de positrons i fotons en 2 dimensions
 
-thetau = add_dimension_R(theta_2d, E_fotof) #Array d'angles de la colisio de positrons i fotons en 3 dimensions
+thetau = add_dimension_R(theta_2d, E_fotof)    # Array d'angles de la colisio de positrons i fotons en 3 dimensions
 
-theta = thetau*u.rad #Arary en 3 dimensions i amb unitats
+theta = thetau*u.rad                           # Array en 3 dimensions i amb unitats
 
-thetaf2 = np.arccos(1/beta - E_fotoi_3d*(1/beta-np.cos(theta))/E_fotof_3d)#Primera approximacio del que val el valor final de l'angle de dispersió del foto
+theta_init = theta_init(beta, theta, E_fotoi_3d, E_fotof_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
+
+print ('theta_init:', theta_init)
 
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
 E_fotof_max = E_fotoi_3d[0]*m*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
@@ -129,12 +149,12 @@ E_fotof_min = E_fotoi_3d[0]*m*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m*Gamma_
 
 delta_phase = 0.004
 phase = np.arange(0.2,0.5,delta_phase)
-phase_3d = add_dim_e_ff(phase, E_fotof, R).value#El poso en les dimensions que em conve
-time = phase_3d*T
+phase_3d = add_dim_phase(phase, E_fotof, R) #El poso en les dimensions que em conve
+time = phase_3d*P
 
 
-R_2d = add_dimension_R(R, E_fotof)*R.unit
-R_3d = add_dimension_R(R_2d, phase)*R.unit
+R_2d = add_dimension_R(R, E_fotof)*RLC.unit
+R_3d = add_dimension_R(R_2d, phase)*RLC.unit
 #Això són diferents coses que s'hauràn d'afegir per la segona integral
 Lsd = 4.6e31*u.J/u.s
 
@@ -156,7 +176,7 @@ rho = anisotropy(phase_3d, R_3d, sigma, theta0 )
 #rho = 1
 
 
-folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf/Rl)}"
+folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf)}"
 if os.path.exists(folder_name):
     print("The data has already been computed")
 else:
@@ -331,13 +351,15 @@ E_i_0 = 0.04*1e-3*u.keV
 
 print(E_i_0*1000/E_i_0.unit, "eV")
 
+
 def angle_max(tf, G, B, ti, Ei):
-    eq = m*G*B*np.sin(tf)+Ei*np.sin(tf+ti)
+    eq = m_keV*G*B*np.sin(tf)+Ei*np.sin(tf+ti)
     return eq
 
 def second_der(tf, G, B, ti, Ei):
-    eq = -m*G*B*np.cos(tf)-Ei*np.cos(tf+ti)
+    eq = -m_keV*G*B*np.cos(tf)-Ei*np.cos(tf+ti)
     return eq
+
 
 #Aquí trobo quin es l'angle maxim
 tmax = fsolve(lambda x: angle_max(x*u.rad, Gamma, beta1d, theta_1d, E_i_0), -theta_1d, xtol = 1e-8, maxfev = 3000)
@@ -418,7 +440,7 @@ plt.xlim((0.1,0.5))
 plt.xlabel("phase", fontsize = 20)
 plt.ylabel("Normalized flux", fontsize = 20)
 plt.legend(fontsize = 17)
-plt.savefig("Flux_theory")
+plt.savefig(os.path.join(folder_name, "Flux_theory"))
 plt.show()
 
 """

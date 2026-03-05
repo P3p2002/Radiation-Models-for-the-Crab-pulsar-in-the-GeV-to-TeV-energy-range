@@ -142,7 +142,7 @@ def solve_theta_f_quantity(theta_i, gamma, beta, E_out, E_in, theta0, **kw):
     #sol = solve_theta_f(theta_i_rad, gamma, beta, E_out_val, E_in_val, m_val, theta0_rad, **kw)
     sol = solve_theta_f_bracketed(theta_i_rad, gamma, beta, E_out_val, E_in_val, m_val, theta0_rad, **kw)
 
-    print ('E_out: ', E_out, ' E_in: ', E_in, ' gamma: ', gamma, ' theta_f_e: ', sol)
+    #print ('E_out: ', E_out, ' E_in: ', E_in, ' gamma: ', gamma, ' theta_f_e: ', sol)
     
     return sol # * u.rad
 
