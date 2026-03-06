@@ -216,10 +216,10 @@ print ('mask: ', mask)
 
 spec_1d = np.empty(len(E_fotoi)) * (1 / E0).unit
 spec_1d[mask] = (
-    K * (E_fotoi[mask] / E0) ** (-a - 1 - b * np.log10(E_fotoi[mask] / E0)) / E0.value
+    K * (E_fotoi[mask] / E0) ** (-a - 1 - b * np.log10(E_fotoi[mask] / E0)) / (E0)
 )
 spec_1d[~mask] = (
-    K1 * (E_fotoi[~mask] / E0) ** (-a1 - 1 - b1 * np.log10(E_fotoi[~mask] / E0)) / E0.value
+    K1 * (E_fotoi[~mask] / E0) ** (-a1 - 1 - b1 * np.log10(E_fotoi[~mask] / E0)) / E0
 )
 
 # Broadcast to shape (len(E_fotof), len(E_fotoi), len(R))
