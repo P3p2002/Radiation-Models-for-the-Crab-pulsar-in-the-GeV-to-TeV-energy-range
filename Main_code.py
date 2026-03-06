@@ -151,25 +151,39 @@ print ('E_f,max: ',E_fotof_max,' E_f,min: ',E_fotof_min)
 
 theta_f_e = compute_theta_f_exact(theta_init, theta, Gamma_3d, beta, E_fotof_3d, E_fotoi_3d, E_fotof_min, E_fotof_max, fill_value=np.nan)
 
+print ('theta_f_e: ',theta_f_e)
 
 comprovacions = equation_solve(theta_f_e, theta, Gamma_3d, beta, E_fotof_3d, E_fotoi_3d, m)
 
-contador = 0
-contador2 = 0
+# Broadcast min/max from (n_Ei, n_R) to (n_Ef, n_Ei, n_R)
+valid = (
+    (E_fotof_3d > E_fotof_min[None, :, :]) &
+    (E_fotof_3d < E_fotof_max[None, :, :])
+)
+contador = np.count_nonzero(valid)
 
-#Aquí comprovo com de precís és el resultat
-for j in range(len(E_fotof)):
-    for k in range(len(E_fotoi)):
-        for i in range(len(R)):
-            if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
-                contador += 1 
+good = valid & (np.abs(comprovacions / m_keV**2) < 0.1)
+contador2 = np.count_nonzero(good)
 
-                if abs(comprovacions[j][k][i]/m_keV**2) < 0.1 :
-                    contador2 += 1
-            else:
-                comprovacions[j][k][i] = 99999999*u.keV*u.keV
-            
-print(contador, contador2)
+# Set invalid entries
+comprovacions = comprovacions.copy()
+comprovacions[~valid] = 99999999 * u.keV * u.keV
+
+#contador = 0
+#contador2 = 0
+
+##Aquí comprovo com de precís és el resultat
+#for j in range(len(E_fotof)):
+#    for k in range(len(E_fotoi)):
+#        for i in range(len(R)):
+#            if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
+#                contador += 1 
+#
+#                if abs(comprovacions[j][k][i]/m_keV**2) < 0.1 :
+#                    contador2 += 1
+#            else:
+#                comprovacions[j][k][i] = 99999999*u.keV*u.keV           
+print('contadors: ',contador, contador2)
 #Contador em dona el numero de bins que tinc entre el range de Energia maxima i Energia minima del foto
 #Mentres que contador2 em dona el numero de bins que tinc amb un error menor al 10%
 #AQUEST CALCUL S'HAURIA DE MILLORAR JA QUE L'ENERGIA FINAL DELS FOTONS CONVERGEIX POC
@@ -194,20 +208,42 @@ a1 = 0.452
 b1 = 0.057
 
 #Aquest espectre es més precís
-spectra = []
-for j in range(len(E_fotof)):
-    auxiliar1 = []
-    for k in range(len(E_fotoi)):
-        auxiliar2 = []
-        for i in range(len(R)):
-            if E_fotoi[k] > 0.2*u.keV:
-                auxiliar = K*(E_fotoi[k]/E0)**(-a-1-b*np.log10(E_fotoi[k]/E0))/E0.value
-            elif E_fotoi[k] < 0.2*u.keV:
-                auxiliar = K1*(E_fotoi[k]/E0)**(-a1-1-b1*np.log10(E_fotoi[k]/E0))/E0.value
-            auxiliar2.append(auxiliar)
-        auxiliar1.append(np.array(auxiliar2))
-    spectra.append(np.array(auxiliar1))
-spectra = np.array(spectra)*(1/E0).unit
+mask = E_fotoi > 0.2 * u.keV
+
+print ('E_fotoi: ', E_fotoi)
+
+print ('mask: ', mask)
+
+spec_1d = np.empty(len(E_fotoi)) * (1 / E0).unit
+spec_1d[mask] = (
+    K * (E_fotoi[mask] / E0) ** (-a - 1 - b * np.log10(E_fotoi[mask] / E0)) / E0.value
+)
+spec_1d[~mask] = (
+    K1 * (E_fotoi[~mask] / E0) ** (-a1 - 1 - b1 * np.log10(E_fotoi[~mask] / E0)) / E0.value
+)
+
+# Broadcast to shape (len(E_fotof), len(E_fotoi), len(R))
+spectra = np.broadcast_to(
+    spec_1d.reshape(1, len(E_fotoi), 1),
+    (len(E_fotof), len(E_fotoi), len(R))
+)
+
+print ('spectra: ', spectra)
+
+#spectra = []
+#for j in range(len(E_fotof)):
+#    auxiliar1 = []
+#    for k in range(len(E_fotoi)):
+#        auxiliar2 = []
+#        for i in range(len(R)):
+#            if E_fotoi[k] > 0.2*u.keV:
+#                auxiliar = K*(E_fotoi[k]/E0)**(-a-1-b*np.log10(E_fotoi[k]/E0))/E0.value
+#            elif E_fotoi[k] < 0.2*u.keV:
+#               auxiliar = K1*(E_fotoi[k]/E0)**(-a1-1-b1*np.log10(E_fotoi[k]/E0))/E0.value
+#           auxiliar2.append(auxiliar)
+#        auxiliar1.append(np.array(auxiliar2))
+#    spectra.append(np.array(auxiliar1))
+#spectra = np.array(spectra)*(1/E0).unit
 
 #Inicialtzo la variable de la fase
 delta_phase = 0.004
@@ -220,9 +256,10 @@ time = phase_3d*P
 R_2d = add_dimension_R(R, E_fotof)*RLC.unit
 R_3d = add_dimension_R(R_2d, phase)*RLC.unit
 
-
 #Busco els parametres dels pulse profiles
 X0s, sigmes1, sigmes2, As, Cs, pcov = adjust_as_lor(phases, fs)
+
+print ('X0s: ',X0s, ' sigmes1: ', sigmes1,' sigmes2: ', sigmes2, ' As: ', As, ' Cs: ',Cs, ' pcov: ', pcov)
 
 
 #funció que em treu un valor i el seu error directament per passar-ho a latex
@@ -272,26 +309,62 @@ def Time_d(time, R, theta):
 #A partir d'aquí re faig les dues primeres integrals però considerant que els pulse profiles depenen de l'energia
 
 
+n_phase = len(phase)
+n_ef = len(E_fotof)
+n_ei = len(E_fotoi)
+n_r = len(R)
+
+# Output without the redundant E_fotof dimension first
+base = np.empty((n_phase, n_ei, n_r), dtype=float)
+
+# Precompute which fitted parameter set corresponds to each E_fotoi[i]
+# idx[i] = first index n such that E_fotoi[i] < E_fotoi2[n]
+idx = np.searchsorted(E_fotoi2, E_fotoi, side="right")
+
+# Clamp in case some E_fotoi are above all E_fotoi2 values
+idx = np.clip(idx, 0, len(E_fotoi2) - 1)
+
+for l, ph in enumerate(phase):
+    # Time_d depends only on phase[l] and R
+    temps = Time_d(ph * P, R, theta_1d)    
+    #temps = np.array([Time_d(ph * P, r, th) for r, th in zip(R, theta_1d)])
+
+    for i in range(n_ei):
+        n = idx[i]
+        base[l, i, :] = funct_f(
+            temps,
+            X0s[n],
+            sigmes1[n],
+            sigmes2[n],
+            As[n],
+            Cs[n]
+        )
+
+# Broadcast over E_fotof, since the result does not depend on j
+Funct = np.broadcast_to(base[:, None, :, :], (n_phase, n_ef, n_ei, n_r)).copy()
+
+print ('Funct: ', Funct)
+
 #Els pulse profiles mes precisos en funcio de l'energia
-Funct = []
-for l in range(len(phase)):
-    print(l)
-    auxiliar3 = []
-    for j in range(len(E_fotof)):
-        auxiliar2 = []
-        for i in range(len(E_fotoi)):
-            auxiliar = []
-            for k in range(len(R)):
-                temps_pt = Time_d(phase[l]*P, R[k], theta_1d[k])
-                for ñ in range(len(E_fotoi2)):
-                    if E_fotoi[i]<E_fotoi2[ñ]:
-                        suport = funct_f(temps_pt, X0s[ñ], sigmes1[ñ], sigmes2[ñ], As[ñ], Cs[ñ])
-                        break
-                auxiliar.append(suport)
-            auxiliar2.append(np.array(auxiliar))
-        auxiliar3.append(np.array(auxiliar2))
-    Funct.append(np.array(auxiliar3))
-Funct = np.array(Funct)
+#Funct = []
+#for l in range(len(phase)):
+#    print(l)
+#    auxiliar3 = []
+#    for j in range(len(E_fotof)):
+#        auxiliar2 = []
+#        for i in range(len(E_fotoi)):
+#            auxiliar = []
+##            for k in range(len(R)):
+#                temps_pt = Time_d(phase[l]*P, R[k], theta_1d[k])
+#                for ñ in range(len(E_fotoi2)):
+#                    if E_fotoi[i]<E_fotoi2[ñ]:
+#                        suport = funct_f(temps_pt, X0s[ñ], sigmes1[ñ], sigmes2[ñ], As[ñ], Cs[ñ])
+#                        break
+#                auxiliar.append(suport)
+#            auxiliar2.append(np.array(auxiliar))
+#        auxiliar3.append(np.array(auxiliar2))
+#    Funct.append(np.array(auxiliar3))
+#Funct = np.array(Funct)
 
 
 #L'angle d'interacció entre positrons i fotons amb les dimensions que vull
@@ -306,25 +379,52 @@ spectra4D = add_dimension_R(spectra, phase)*spectra.unit
 #Primer producte
 first = Funct*(1-np.cos(Theta4D))*xsec4D*spectra4D
 
+print ('first: ', first)
+
+# Validity mask: shape (n_Efotof, n_Efotoi, n_R)
+valid = (
+    (E_fotof_3d > E_fotof_min[None, :, :]) &
+    (E_fotof_3d < E_fotof_max[None, :, :])
+)
+
+# Weight for integration over E_fotoi: shape (n_Efotoi,)
+weights = Delta_log * E_fotoi
+
+# Reshape weights for broadcasting over (phase, E_fotof, E_fotoi, R)
+weights_4d = weights[None, None, :, None]
+
+# Broadcast valid mask to include phase dimension
+valid_4d = valid[None, :, :, :]
+
+# Masked weighted sum over E_fotoi axis (axis=2)
+first_int = np.sum(first * weights_4d * valid_4d, axis=2)
+
+# With units and without units
+first_int = first_int * first.unit * E_fotoi.unit
+first_intu = first_int.value
+
+print ('first_intu: ', first_intu)
+
+
 #Calculo la primera integral
-first_int = []
-for l in range(len(phase)):
-    print(l)
-    auxiliar3 = []
-    for j in range(len(E_fotof)):
-        auxiliar2 = []
-        for i in range(len(R)):
-            auxiliar = 0
-            for k in range(len(E_fotoi)):
-                if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
-                    auxiliar += first[l][j][k][i]*Delta_log[k]*E_fotoi[k]
-            auxiliar2.append(np.array(auxiliar))
-        auxiliar3.append(np.array(auxiliar2))
-    first_int.append(np.array(auxiliar3))
+#first_int = []
+#for l in range(len(phase)):
+#    print(l)
+#    auxiliar3 = []
+#    for j in range(len(E_fotof)):
+#        auxiliar2 = []
+#        for i in range(len(R)):
+#            auxiliar = 0
+#            for k in range(len(E_fotoi)):
+#                if (E_fotof_max[k][i] > E_fotof_3d[j][k][i] > E_fotof_min[k][i]):
+#                    auxiliar += first[l][j][k][i]*Delta_log[k]*E_fotoi[k]
+#            auxiliar2.append(np.array(auxiliar))
+#        auxiliar3.append(np.array(auxiliar2))
+#    first_int.append(np.array(auxiliar3))
         
 #Amb unitats i sense, per segons em convingui
-first_int = np.array(first_int)*first.unit*E_fotoi.unit
-first_intu = first_int.value
+#first_int = np.array(first_int)*first.unit*E_fotoi.unit
+#first_intu = first_int.value
 
 folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf)}"
 
