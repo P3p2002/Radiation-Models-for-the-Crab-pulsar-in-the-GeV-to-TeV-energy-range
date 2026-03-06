@@ -67,45 +67,199 @@ def as_lorentz(x,x0,sigma1,sigma2, A):
     return np.where(x<=x0,A*sigma1/((sigma1**2+(x-x0)**2)*np.pi) , A*sigma2**2/((sigma2**2+(x-x0)**2)*np.pi*sigma1))
 
 #Funció Lorentziana asimetrica amb la C sumant a l'esquerra
-def asym_lorentz_C(x,x0,sigma1,sigma2, A, C):
-    
-    return np.where(x<=x0,A*sigma1/((sigma1**2+(x-x0)**2)*np.pi) + C,A*sigma2/((sigma2**2+(x-x0)**2)*np.pi)*sigma2*(1+sigma1*C*np.pi/A)/sigma1)
+#def asym_lorentz_C(x,x0,sigma1,sigma2, A, C):
+#    
+#    return np.where(x<=x0,A*sigma1/((sigma1**2+(x-x0)**2)*np.pi) + C,A*sigma2/((sigma2**2+(x-x0)**2)*np.pi)*sigma2*(1+sigma1*C*np.pi/A)/sigma1)
+
+def asym_lorentz_C(x, x0, sigma_left, sigma_right, A, C):
+    """
+    Asymmetric Lorentzian with constant background C added on the left side.
+
+    Parameters
+    ----------
+    x : array-like
+    x0 : float
+        Peak position.
+    sigma_left : float
+        Width for x <= x0.
+    sigma_right : float
+        Width for x > x0.
+    A : float
+        Amplitude / normalization parameter.
+    C : float
+        Constant offset added on the left branch.
+
+    Returns
+    -------
+    y : ndarray
+    """
+    x = np.asarray(x)
+
+    left = A * sigma_left / (np.pi * (sigma_left**2 + (x - x0)**2)) + C
+    right = (
+        A * sigma_right / (np.pi * (sigma_right**2 + (x - x0)**2))
+        * sigma_right * (1 + sigma_left * C * np.pi / A) / sigma_left
+    )
+
+    return np.where(x <= x0, left, right)
+
 
 #Funció per ajustar les dades
-def adjust_as_lor(phases, fs):
-    x_initial = 0.4
-    gamma_initial1 = 0.1
-    gamma_initial2 = 0.1
-    A_initial = 0.5
-    C_initial = 3
-    
-    X0s = []
-    sigmes1 = []
-    sigmes2 = []
-    As = []
-    Cs = []
-    cov = []
-    for i in range(len(phases)):
-    
-        phases_arr = np.array(phases[i])
-        ids = np.where((phases_arr>0.2) & (phases_arr<0.5))
-        f_arr = np.array(fs[i])
-        popt, pcov = curve_fit(asym_lorentz_C, phases_arr[ids], f_arr[ids], [x_initial, gamma_initial1, gamma_initial2, A_initial, C_initial], maxfev = 800000)
-        
-        X0s.append(popt[0])
-        sigmes1.append(popt[1])
-        sigmes2.append(popt[2])
-        As.append(popt[3])
-        Cs.append(popt[4])
-        cov.append(pcov)
-        f_x = asym_lorentz_C(x, popt[0], popt[1], popt[2], popt[3], popt[4])
-        plt.plot(phases_arr[ids], f_arr[ids], '.')
-        plt.plot(x, f_x)
-        plt.savefig("Lor_fit_interval_"+str(i+1))
-        plt.show()
-        
-    return X0s, sigmes1, sigmes2, As, Cs, cov
-   
+#def adjust_as_lor(phases, fs):
+#    x_initial = 0.4
+#    gamma_initial1 = 0.1
+#    gamma_initial2 = 0.1
+#    A_initial = 0.5
+#    C_initial = 3
+#    
+#    X0s = []
+#    sigmes1 = []
+#    sigmes2 = []
+#    As = []
+#    Cs = []
+#    cov = []
+#    for i in range(len(phases)):
+#
+#        phases_arr = np.array(phases[i])
+#        ids = np.where((phases_arr>0.2) & (phases_arr<0.5))
+#        f_arr = np.array(fs[i])
+#        popt, pcov = curve_fit(asym_lorentz_C, phases_arr[ids], f_arr[ids], [x_initial, gamma_initial1, gamma_initial2, A_initial, C_initial], maxfev = 800000)
+#        
+#        X0s.append(popt[0])
+#        sigmes1.append(popt[1])
+#        sigmes2.append(popt[2])
+#        As.append(popt[3])
+#        Cs.append(popt[4])
+#        cov.append(pcov)
+#        f_x = asym_lorentz_C(x, popt[0], popt[1], popt[2], popt[3], popt[4])
+#        plt.plot(phases_arr[ids], f_arr[ids], '.')
+#        plt.plot(x, f_x)
+#        plt.savefig("Lor_fit_interval_"+str(i+1))
+#        plt.show()
+#        
+#    return X0s, sigmes1, sigmes2, As, Cs, cov
+
+def adjust_as_lor(
+    phases,
+    fs,
+    fit_range=(0.2, 0.5),
+    p0=(0.4, 0.1, 0.1, 0.5, 3.0),
+    bounds=([0.0, 1e-8, 1e-8, 1e-12, -np.inf],
+            [1.0, np.inf, np.inf, np.inf, np.inf]),
+    maxfev=200000,
+    x_plot=None,
+    make_plots=True,
+    outdir=".",
+    show_plots=False
+):
+    """
+    Fit an asymmetric Lorentzian to multiple phase profiles.
+
+    Parameters
+    ----------
+    phases : sequence of array-like
+        Phase arrays.
+    fs : sequence of array-like
+        Function / flux arrays corresponding to `phases`.
+    fit_range : tuple
+        Interval (xmin, xmax) used for fitting.
+    p0 : tuple
+        Initial parameter guess: (x0, sigma_left, sigma_right, A, C)
+    bounds : 2-tuple
+        Lower and upper bounds for the fit parameters.
+    maxfev : int
+        Maximum number of function evaluations for curve_fit.
+    x_plot : array-like or None
+        X grid used for plotting the fitted function. If None, a default grid is used.
+    make_plots : bool
+        Whether to create plots.
+    outdir : str or Path
+        Output directory for saved plots.
+    show_plots : bool
+        Whether to call plt.show().
+
+    Returns
+    -------
+    results : dict
+        Dictionary with fitted parameters and covariance matrices.
+    """
+    if len(phases) != len(fs):
+        raise ValueError("`phases` and `fs` must have the same length.")
+
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    x0_list = []
+    sigma_left_list = []
+    sigma_right_list = []
+    A_list = []
+    C_list = []
+    cov_list = []
+
+    xmin, xmax = fit_range
+
+    for i, (phase_i, f_i) in enumerate(zip(phases, fs)):
+        phase_arr = np.asarray(phase_i)
+        f_arr = np.asarray(f_i)
+
+        mask = (phase_arr > xmin) & (phase_arr < xmax)
+        x_fit = phase_arr[mask]
+        y_fit = f_arr[mask]
+
+        if x_fit.size == 0:
+            raise ValueError(f"No data points in fit range for dataset {i}.")
+
+        popt, pcov = curve_fit(
+            asym_lorentz_C,
+            x_fit,
+            y_fit,
+            p0=p0,
+            bounds=bounds,
+            maxfev=maxfev
+        )
+
+        x0, sigma_left, sigma_right, A, C = popt
+
+        x0_list.append(x0)
+        sigma_left_list.append(sigma_left)
+        sigma_right_list.append(sigma_right)
+        A_list.append(A)
+        C_list.append(C)
+        cov_list.append(pcov)
+
+        if make_plots:
+            if x_plot is None:
+                x_eval = np.linspace(xmin, xmax, 500)
+            else:
+                x_eval = np.asarray(x_plot)
+
+            y_eval = asym_lorentz_C(x_eval, *popt)
+
+            plt.figure()
+            plt.plot(x_fit, y_fit, ".", label="Data")
+            plt.plot(x_eval, y_eval, "-", label="Fit")
+            plt.xlabel("Phase")
+            plt.ylabel("f")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(outdir / f"Lor_fit_interval_{i+1}.png", dpi=150)
+
+            if show_plots:
+                plt.show()
+            else:
+                plt.close()
+
+    return {
+        "x0": np.array(x0_list),
+        "sigma_left": np.array(sigma_left_list),
+        "sigma_right": np.array(sigma_right_list),
+        "A": np.array(A_list),
+        "C": np.array(C_list),
+        "cov": cov_list,
+    }
+
+
+
 #Funció Lorentziana asimetrca per passarli el temps    
 def funct_f(x,x0,sigma1,sigma2, A, C):
     
