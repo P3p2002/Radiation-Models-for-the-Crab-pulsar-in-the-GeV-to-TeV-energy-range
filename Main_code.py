@@ -17,6 +17,7 @@ from phases import *
 from Anisotropy import *
 from setup import SetUp
 from constants import *
+from Spectrum import *
 import astropy.units as u
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -55,9 +56,10 @@ E0 = 1*u.keV
 E_fotoi2 = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV)#Energies en les quals s'ha dividit els pulse profiles
 #Delta_E_fotoi = [0.2, 1.4, 2.0, 6.0, 4.0, 26.0, 50.0, 160.0]*(u.keV)
 
-
+E_fotoi_uplim = 4
+E_fotoi_lowlim = -5
 #E_fotoi = np.logspace(-1,2, steps)*(u.keV)
-E_fotoi1 = np.logspace(-5,2,30)*(u.keV)#Energies inicials dels fotons
+E_fotoi1 = np.logspace(E_fotoi_lowlim,E_fotoi_uplim,30)*(u.keV)#Energies inicials dels fotons
 
 logE = np.log(E_fotoi1/E0)
 
@@ -72,8 +74,8 @@ steps = 30 #Numero de energia final dels fotons que tindrè
 #pels steps que li doni
 
 E_foto_lowlim = 6  # 10^6 keV --> 1 GeV
-E_foto_uplim  = 9  # 10^9 keV --> 1 TeV
-E_fotof1 = np.logspace(6,9, steps)*(u.keV)      # Energies finals dels fotons
+E_foto_uplim  = 11  # 10^9 keV --> 1 TeV
+E_fotof1 = np.logspace(E_foto_lowlim,E_foto_uplim, steps)*(u.keV)      # Energies finals dels fotons
 
 E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2        # Bins de les energies finals dels fotons
 
@@ -110,7 +112,7 @@ beta1d = beta_f(Gamma, dps=None)                # Valor de la beta dels positron
 
 #theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
 #print ('theta_1d: ', theta_1d,'\n')
-theta_1d = theta(R,R0,Rf,RLC,gamma_w,Gamma,alpha)
+theta_1d = thetafunct(R,R0,Rf,RLC,gamma_w,Gamma,alpha)*u.rad
 #print ('theta_1d: ', theta_1d,'\n')
 
 theta_2d = add_dimension_R(theta_1d, E_fotoi)  # Array d'angles de la colisio de positrons i fotons en 2 dimensions
@@ -124,7 +126,7 @@ theta_init = theta_init(beta, theta, E_fotoi_3d, E_fotof_3d) # Primera approxima
 print ('theta_init:', theta_init)
 
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
-E_fotof_max = E_fotoi_3d[0]*m_keV*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
+E_fotof_max = E_fotoi_3d[0]*m_keV*Gamma_3d[-1]*(1-beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[-1]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
 E_fotof_min = E_fotoi_3d[0]*m_keV*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
 
 print ('E_f,max: ',E_fotof_max,' E_f,min: ',E_fotof_min)
@@ -213,7 +215,40 @@ mask = E_fotoi > 0.2 * u.keV
 print ('E_fotoi: ', E_fotoi)
 
 print ('mask: ', mask)
+### Experimental data obtained with plot digitalizer
+Interval_x = np.array([0.0003162276172147746, 0.0006628700711058477, 0.001279801052582922, 0.002470912307632171, 0.004970822524341731, 0.010419739772213055, 0.02011739496035263, 0.035774307157273, 0.07498939446834635, 0.15719128418077574, 0.3162285100282012, 0.6105401886168376, 1.1312834556437819, 1.8529221773372084, 4.970827202420301, 12.798058703114059, 20.117413892984658, 32.95018783048523, 66.28706949378679, 127.98046658775885, 227.58476089298526, 388.4066097985313, 749.8967676108324, 1279.803461444897, 2096.1821765480395, 3727.6072514469956, 6628.719426036748])
+Interval_y = np.array([0.000719370045023045, 0.0008129133633486966, 0.0008674801800921799, 0.0009142518392550057, 0.0009532283408371741, 0.0009844093279992444, 0.0009922048424193426, 0.0009844093279992444, 0.0009688190128379296, 0.0009532283408371741, 0.0009220473536751038, 0.0008908660096735928, 0.0008362991929301096, 0.0007817323761866263, 0.0007271652026037024, 0.0007583465466052134, 0.0006024408971159803, 0.0005790550675345674, 0.0006336218842780508, 0.0006725983858602192, 0.0006803935434408766, 0.0006881890578609747, 0.0006881890578609747, 0.0006570077138594637, 0.0006258267266973932, 0.000540078565952399, 0.0005088975787903287])
 
+Interval_x = Interval_x*1e3
+Interval_y = Interval_y*1e3
+
+### Experimental deviation
+Inc_x = np.array([0.0003162276172147746, 0.0003162276172147746, 0.8141694802703412, 0.7498960618779956, 6.361675872880828, 9.59717769319248, 8.83954254202545, 6.628713187704805, 12.282489672705855, 12.282489672705855, 22.758497507472, 20.117413892984658, 35.774340824743255, 35.774340824743255, 2912.6431298426255, 2682.698680657325, 848.3458066388913, 562.3425159442847, 61.05413377853293, 61.05413377853293, 6361.681859901954, 6105.4248695598335])
+Inc_y = np.array([0.0006258267266973932, 0.0007661417041858708, 0.0007895275337672837, 0.0008596850225115225, 0.0006414173986981487, 0.0005790550675345674, 0.0007505510321851153, 0.0007973226913479412, 0.000719370045023045, 0.0008207085209293541, 0.0007037793730222895, 0.0005166927363709861, 0.0006725983858602192, 0.00047771659162825837, 0.0006725983858602192, 0.0007661417041858708, 0.000719370045023045, 0.0006414173986981487, 0.0005634643955338119, 0.0006881890578609747, 0.00029842511255761243, 0.0005946457395353229])
+
+Inc_x = Inc_x*1e3
+Inc_y = Inc_y*1e3
+
+sigma2 = 0
+for i in range(int(len(Inc_y)/2)):
+    a = (Inc_y[i] - Inc_y[i+1])/2
+    sigma2 += a**2
+sigma = np.sqrt(sigma2)
+
+(Sedfit, xi, poptspectrum) = Xi_Fit(Interval_y, Interval_x, 7, sigma)  
+
+plt.plot(Interval_x, Sedfit, label = "Fitting quadratic")
+plt.plot(Interval_x, Interval_y, '.', label = "Interval 4")
+
+plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
+plt.xlabel(r"E (keV)")
+plt.xscale("log")
+plt.yscale("log")
+plt.legend()
+plt.show()
+
+spec1d2 = SEDfromFIT(np.log10(E_fotoi/E0), *poptspectrum)
+""" I will need to change this with the new polynomial"""
 spec_1d = np.empty(len(E_fotoi)) * (1 / E0).unit
 spec_1d[mask] = (
     K * (E_fotoi[mask] / E0) ** (-a - 1 - b * np.log10(E_fotoi[mask] / E0)) / (E0)
@@ -223,10 +258,25 @@ spec_1d[~mask] = (
 )
 
 # Broadcast to shape (len(E_fotof), len(E_fotoi), len(R))
+#I change it to the new fiting
 spectra = np.broadcast_to(
-    spec_1d.reshape(1, len(E_fotoi), 1),
+    spec1d2.reshape(1, len(E_fotoi), 1),
     (len(E_fotof), len(E_fotoi), len(R))
-)
+)*(1/E0).unit
+### As this does not have the  right units (which should be MeV/(cm^2 s))
+### we expect the final result, i.e., the second integral to have the same units
+
+plt.plot(E_fotoi, spec_1d, '.', label = "Original fit")
+plt.plot(E_fotoi, spec1d2, '.', label = "Polynomial fit")
+plt.plot(Interval_x, Interval_y, '.', label = "Data")
+
+plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
+plt.xlabel(r"E (keV)")
+plt.xscale("log")
+plt.yscale("log")
+plt.legend()
+plt.show()
+
 
 print ('spectra: ', spectra)
 
@@ -253,11 +303,18 @@ time = phase_3d*P
 
 
 #Canvio les variables segons les dimensions que em conve
-R_2d = add_dimension_R(R, E_fotof)*RLC.unit
-R_3d = add_dimension_R(R_2d, phase)*RLC.unit
+R_2d = add_dimension_R(R, E_fotof)
+R_3d = add_dimension_R(R_2d, phase)
 
 #Busco els parametres dels pulse profiles
-X0s, sigmes1, sigmes2, As, Cs, pcov = adjust_as_lor(phases, fs)
+resultsLor = adjust_as_lor(phases, fs)
+
+X0s = resultsLor["x0"]
+sigmes1 = resultsLor["sigma_left"]
+sigmes2 = resultsLor["sigma_right"]
+As = resultsLor["A"]
+Cs = resultsLor["C"]
+pcov = resultsLor["cov"]
 
 print ('X0s: ',X0s, ' sigmes1: ', sigmes1,' sigmes2: ', sigmes2, ' As: ', As, ' Cs: ',Cs, ' pcov: ', pcov)
 
@@ -397,10 +454,16 @@ weights_4d = weights[None, None, :, None]
 valid_4d = valid[None, :, :, :]
 
 # Masked weighted sum over E_fotoi axis (axis=2)
-first_int = np.sum(first * weights_4d * valid_4d, axis=2)
+#first_int = np.sum(first * weights_4d * valid_4d, axis=2)
 
-# With units and without units
-first_int = first_int * first.unit * E_fotoi.unit
+# Use np.where to avoid nan * 0 = nan issue
+masked = np.where(valid_4d, first * weights_4d, 0.0)
+first_int = np.sum(masked, axis=2)
+
+# With units and without units, now I do not need
+#to multiply by the units as this conserves the units 
+#during the whole proces
+first_int = first_int
 first_intu = first_int.value
 
 print ('first_intu: ', first_intu)
@@ -445,21 +508,26 @@ for i in range(len(phase)):
     file.close()
 
 
+
 dNdV = Lsd/(4*np.pi*c**3*gamma_w*m_e)
 
 sigma = 0.015
 
-theta0 = phase_r(R_3d, freq_r)
+theta0 = phase_r(R_3d*RLC, freq_r)
 
-rho = anisotropy(phase_3d, R_3d, sigma, theta0 )
+rho = anisotropy(phase_3d, R_3d*RLC, sigma, theta0 )
 
 
 #rho = 1
 
 #torno a integrar, tranposo i poso les unitats que toquen
-second_int = np.sum(first_int*RLC**2/R_3d**2*rho, axis = 2)*delta_R
+second_int = np.sum(first_int*RLC**2/(R_3d*RLC)**2*rho, axis = 2)*delta_R
 secondi_tr = np.transpose(second_int)
 secitr_units = secondi_tr*dNdV*e2/(kevs_m**2*RLC)
+
+#This has the same units as the fit I previusly did
+#to the sed, and thus, this would be keV/(cm^2 s)
+#which we want to obtain
 
 """
 for j in range(len(secitr_units)):
@@ -507,6 +575,9 @@ plt.xscale("log")
 plt.yscale("log")
 plt.ylabel(r"$E_{\gamma}^2 \dfrac{dN^{(0)}}{dSdtd\epsilon}$ (MeVcm$^{-2}$s$^{-1}$)", fontsize = 20)
 plt.xlabel(r"$E_{\gamma}$(MeV)", fontsize = 20)
+plt.title(
+    rf"SED with $\epsilon_{{max}} = 10^{{{E_fotoi_uplim}}}$ and $E_{{\gamma,max}} = 10^{{{E_foto_uplim}}}$",
+    fontsize=20)
 plt.legend(fontsize = 20)
 plt.savefig("SED_theoretical")
 plt.show()
@@ -526,6 +597,7 @@ inc_adjusts = []
 r_mesh, phase_mesh = np.meshgrid(R/RLC, phase)
 
 #If I put rho = 1, then this rho2 = 1 also.
+#rho2 = 1
 rho2 = np.transpose(rho, axes = [1,0,2])
 
 for i in range(24):

@@ -9,6 +9,7 @@ Prova
 import numpy as np
 import astropy.units as u
 from astropy.constants import c
+from constants import *
 
 T     = 33*10**(-3)*u.s # període de Crab (s)
 Omega = 2*np.pi/T       # velocitat angular
@@ -29,7 +30,7 @@ def phase_r(r, freq_r):
 def anisotropy(phase, r, sigma, theta_0):
         
     
-    return np.where(r > Rl , gaussian(phase, theta_0, sigma), 0)
+    return np.where(r > RLC , gaussian(phase, theta_0, sigma), 0)
 
 
 """

@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import astropy.units as u
-
+from pathlib import Path
 T     = 33*10**(-3)*u.s # període de Crab (s)
 
 #The first number indicates the interval and the second one which peak
@@ -250,14 +250,13 @@ def adjust_as_lor(
                 plt.close()
 
     return {
-        "x0": np.array(x0_list),
-        "sigma_left": np.array(sigma_left_list),
-        "sigma_right": np.array(sigma_right_list),
-        "A": np.array(A_list),
-        "C": np.array(C_list),
-        "cov": cov_list,
-    }
-
+            "x0": np.array(x0_list),
+            "sigma_left": np.array(sigma_left_list),
+            "sigma_right": np.array(sigma_right_list),
+            "A": np.array(A_list),
+            "C": np.array(C_list),
+            "cov": cov_list,
+        }
 
 
 #Funció Lorentziana asimetrca per passarli el temps    

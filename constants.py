@@ -16,7 +16,7 @@ r_0 = (e.value)**2/(4*np.pi*eps0.value*m_e.value*c.value**2)*u.m
 # Electron charge in natural units  alpha = e^2/(4pi) \approx 1/137
 e2 = 4*np.pi/137
 
-kevs_m = 8.07e8/(u.m*u.keV)  # ???  
+kevs_m = 8.07e8/(u.m*u.keV)  # Conversion from m to keV
 freq_r = 1*u.rad/(u.m)       # Frequency in radians / m
 
 # Crab pulsar constants
