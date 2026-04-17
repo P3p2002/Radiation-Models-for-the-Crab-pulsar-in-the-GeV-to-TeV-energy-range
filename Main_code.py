@@ -39,6 +39,8 @@ R  = np.arange(1., RLI, delta_R)   # array de distancies respecte l'estrella de 
 a  = np.arcsin(1/R)                # array d'angles que s'obté a partir de la simplificació per a R>>RLC
 w  = 1.-np.cos(a)                  # pesos per a l'eficiencia de la dispersió IC
 
+Eunit = u.MeV
+
 #Si nomes vull graficar una alpha necessito posarla com una llista o array
 #alpha = np.array([1,3,10])
 alpha = 1
@@ -58,8 +60,9 @@ E_fotoi2 = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV)#Energies en les
 
 E_fotoi_uplim = 4
 E_fotoi_lowlim = -5
+ebins = 30   # was 30
 #E_fotoi = np.logspace(-1,2, steps)*(u.keV)
-E_fotoi1 = np.logspace(E_fotoi_lowlim,E_fotoi_uplim,30)*(u.keV)#Energies inicials dels fotons
+E_fotoi1 = np.logspace(E_fotoi_lowlim,E_fotoi_uplim,ebins)*(u.keV) # Energies inicials dels fotons
 
 logE = np.log(E_fotoi1/E0)
 
@@ -444,6 +447,8 @@ valid = (
     (E_fotof_3d < E_fotof_max[None, :, :])
 )
 
+print ('Valid: ', valid)
+
 # Weight for integration over E_fotoi: shape (n_Efotoi,)
 weights = Delta_log * E_fotoi
 
@@ -562,6 +567,8 @@ cry = np.array(y2)
 spec = np.sum(secitr_units, axis = 1)*delta_phase
 
 SED = (spec*E_fotof**2).to('MeV')
+
+
 
 
 #Plotejo la SED
