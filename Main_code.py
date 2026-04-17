@@ -20,6 +20,7 @@ from constants import *
 from Spectrum import *
 import astropy.units as u
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 import pandas as pd
 import scienceplots
 import os
@@ -56,8 +57,8 @@ E0 = 1*u.keV
 E_fotoi2 = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV)#Energies en les quals s'ha dividit els pulse profiles
 #Delta_E_fotoi = [0.2, 1.4, 2.0, 6.0, 4.0, 26.0, 50.0, 160.0]*(u.keV)
 
-E_fotoi_uplim = 4
-E_fotoi_lowlim = -5
+E_fotoi_uplim = 2
+E_fotoi_lowlim = -1
 #E_fotoi = np.logspace(-1,2, steps)*(u.keV)
 E_fotoi1 = np.logspace(E_fotoi_lowlim,E_fotoi_uplim,30)*(u.keV)#Energies inicials dels fotons
 
@@ -74,7 +75,7 @@ steps = 30 #Numero de energia final dels fotons que tindrè
 #pels steps que li doni
 
 E_foto_lowlim = 6  # 10^6 keV --> 1 GeV
-E_foto_uplim  = 11  # 10^9 keV --> 1 TeV
+E_foto_uplim  = 9  # 10^9 keV --> 1 TeV
 E_fotof1 = np.logspace(E_foto_lowlim,E_foto_uplim, steps)*(u.keV)      # Energies finals dels fotons
 
 E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2        # Bins de les energies finals dels fotons
@@ -125,9 +126,51 @@ theta_init = theta_init(beta, theta, E_fotoi_3d, E_fotof_3d) # Primera approxima
 
 print ('theta_init:', theta_init)
 
+#I try to compute the exact maximum and minimum of the final energy
+def Efotof(Ein, Gamma, beta, thetaL, theta_mm, me):
+    num = Ein*me*Gamma*(1-beta*np.cos(thetaL))
+    den = me*Gamma*(1-np.cos(theta_mm)) + Ein*(1-np.cos(thetaL + theta_mm))
+    return num/den
+
+def derEfotof(Ein, Gamma, beta, theta, theta_L, me):
+    num = -(Gamma*me*beta*np.sin(theta_L) + (np.sin(theta + theta_L))*Ein)
+    num2 = Ein*me*Gamma*(1-beta*np.cos(theta))
+    den = (beta*np.cos(theta_L)-1)*Gamma*me + (np.cos(theta+theta_L) -1)*Ein
+    return num
+
+ind1 = -1
+angleplot = np.linspace(0, 2*np.pi, 2000)*u.rad
+derfinal = derEfotof(E_fotoi_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta[ind1][ind1][ind1], theta[ind1][ind1][ind1], angleplot, m_keV)
+Ef = Efotof(E_fotoi_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta[ind1][ind1][ind1], theta[ind1][ind1][ind1], angleplot, m_keV)
+gamma_test = 50272.72727272726
+beta_test = 1 - 1/50272.72727272726**2
+E_in_test = 0.11344805015839611
+theta_test = 1.4665862800361515
+Eout_test = 25097162.47505813
+Etest = Eout_test - Efotof(E_in_test,gamma_test, beta_test, theta_test, angleplot.value ,m_keV.value)
+plt.plot(angleplot, Etest)
+plt.yscale("log")
+
+ax = plt.gca()
+ax.yaxis.set_major_formatter(ScalarFormatter())
+ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+plt.show()
+
+plt.plot(angleplot, derfinal)
+ax = plt.gca()
+ax.yaxis.set_major_formatter(ScalarFormatter())
+ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+plt.show()
+
+theta_fs = np.arctan(-E_fotoi_3d*np.sin(theta)/(E_fotoi_3d*np.cos(theta) + m_keV*(Gamma_3d**2 -1)))
+theta_ss = theta_fs + np.pi*u.rad
+
+E_fotof_max = Efotof(E_fotoi_3d, Gamma_3d, beta, theta, theta_fs, m_keV)
+E_fotof_min = Efotof(E_fotoi_3d, Gamma_3d, beta, theta, theta_ss, m_keV)
+
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
-E_fotof_max = E_fotoi_3d[0]*m_keV*Gamma_3d[-1]*(1-beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[-1]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
-E_fotof_min = E_fotoi_3d[0]*m_keV*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
+E_fotof_max2 = E_fotoi_3d[0]*m_keV*Gamma_3d[-1]*(1-beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[-1]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
+E_fotof_min2 = E_fotoi_3d[0]*m_keV*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m_keV*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
 
 print ('E_f,max: ',E_fotof_max,' E_f,min: ',E_fotof_min)
 
@@ -159,8 +202,8 @@ comprovacions = equation_solve(theta_f_e, theta, Gamma_3d, beta, E_fotof_3d, E_f
 
 # Broadcast min/max from (n_Ei, n_R) to (n_Ef, n_Ei, n_R)
 valid = (
-    (E_fotof_3d > E_fotof_min[None, :, :]) &
-    (E_fotof_3d < E_fotof_max[None, :, :])
+    (E_fotof_3d > E_fotof_min[:, :, :]) &
+    (E_fotof_3d < E_fotof_max[:, :, :])
 )
 contador = np.count_nonzero(valid)
 
@@ -518,7 +561,7 @@ theta0 = phase_r(R_3d*RLC, freq_r)
 rho = anisotropy(phase_3d, R_3d*RLC, sigma, theta0 )
 
 
-#rho = 1
+rho = 1
 
 #torno a integrar, tranposo i poso les unitats que toquen
 second_int = np.sum(first_int*RLC**2/(R_3d*RLC)**2*rho, axis = 2)*delta_R

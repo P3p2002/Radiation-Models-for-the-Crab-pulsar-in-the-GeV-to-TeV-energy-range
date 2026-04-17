@@ -102,7 +102,7 @@ def Xi_Fit(experimentaly, experimentalx, N, Sigma):
     plt.yscale("log")
     plt.show()
     return (SEDFit, xi, poptfit)
-"""
+
 xilist = []
 Nlist = []
 for j in range(1, 15):  
@@ -110,20 +110,21 @@ for j in range(1, 15):
     xilist.append(xi)
     Nlist.append(j)
 plt.hlines(1, 1, 10)
+plt.ylim((0, 0.2))
 plt.plot(Nlist, xilist)
 plt.show()
-"""
+
 popt, pcov = curve_fit(polN, Intervallog_x, Intervallog_y, ains)
 
 
-logE = np.logspace(-3, 6, 100)
+logE = np.logspace(-1, 8, 100)
 
 
-SED = SEDfromFIT(np.log10(Interval_x), *popt)
+SED = SEDfromFIT(np.log10(logE), *popt)
 
-xitry = Xi2(Interval_y, SED, sigma, 8)
+#xitry = Xi2(Interval_y, SED, sigma, 8)
 
-plt.plot(Interval_x, SED, label = "Fitting quadratic")
+plt.plot(logE, SED, label = "Fitting quadratic")
 plt.plot(Interval_x, Interval_y, '.', label = "Interval 4")
 
 plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")

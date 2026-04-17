@@ -11,6 +11,8 @@ from astropy.constants import m_e
 import astropy.units as u
 from constants import m_keV
 from scipy.optimize import fsolve, bisect, root_scalar
+import matplotlib.pyplot as plt
+
 
 def eq_319(theta_f, theta_i, gamma, beta, E_out, E_in, m):
     """
@@ -54,7 +56,7 @@ def solve_theta_f(theta_i, gamma, beta, E_out, E_in, m, theta0,
 
 def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
                             theta0,
-                            domain=(0.0, np.pi/2),   # forward scattering only 
+                            domain=(0.0, 2*np.pi),   # forward scattering only 
                             step0=1e-3,
                             max_expand=60,
                             method="brentq",
@@ -75,9 +77,11 @@ def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
     # Quick check if a solution exists: 
     xs = np.linspace(a_dom, b_dom, 2000)
     ys = [eq_319(x, theta_i, gamma, beta, E_out, E_in, m) for x in xs]
-
+    #plt.plot(xs, ys)
     if (min(ys) > 0 and max(ys) > 0) or (min(ys) < 0 and max(ys) < 0):
-        raise ValueError(f"No root exists, min(Eq.3.19): {min(ys)}, max(Eq.3.19): {max(ys)}.")    
+        print(ys)
+        raise ValueError(f"No root exists, min(Eq.3.19): {min(ys)}, max(Eq.3.19): {max(ys)} \
+                         for theta_i: {theta_i}, gamma: {gamma}, E_out: {E_out}, E_in: {E_in}")    
     
     f = lambda x: eq_319(x, theta_i, gamma, beta, E_out, E_in, m)
 
@@ -158,11 +162,12 @@ def compute_theta_f_exact(theta_init, theta, Gamma_3d, beta,
     out = np.full((nJ, nK, nI), fill_value, dtype=float)
 
     # Validity mask: note min/max are (nK, nI), broadcast to (nJ, nK, nI)
-    valid = (E_fotof_3d > E_fotof_min[None, :, :]) & (E_fotof_3d < E_fotof_max[None, :, :])
+    valid = (E_fotof_3d > E_fotof_min) & (E_fotof_3d < E_fotof_max)
 
     # Iterate only over valid points (still a loop, but much smaller)
     idxs = np.argwhere(valid)
     for j, k, i in idxs:
+        print(j, k , i)
         x0 = theta_init[j, k, i]
         out[j, k, i] = solve_theta_f_quantity(
             theta[j, k, i],
