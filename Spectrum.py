@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scienceplots
-from sklearn.metrics import r2_score
+#from sklearn.metrics import r2_score
 from scipy.stats import chisquare
 
 plt.style.use(["science","no-latex"])
