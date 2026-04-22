@@ -113,6 +113,13 @@ def theta_init(beta, theta, E_fotoi, E_fotof):
     #print ('arg=',arg)
 
     arg = np.where(arg > 1, 1., arg)
+    arg = np.where(arg < 0, 0., arg)
+
+    angle = np.arccos(arg)
+
+    if np.any(np.isnan(angle)):
+        mask = np.where(np.isnan(angle))
+        raise ValueError(f"cos(theta_init) cannot be calculated: arg={arg[mask]}, beta={beta[mask]}, E_i={E_fotoi[mask]}, theta={theta[mask]}, E_f={E_fotof[mask]}")
     
     return np.arccos(arg)
     
@@ -165,7 +172,7 @@ def beta_f(gamma, dps=None):
     """
     if np.isscalar(gamma):
         if dps is None:
-            return float(np.sqrt(1.0 - 1.0/(gamma*gamma)))
+            return float(np.sqrt(1.0 - 1.0/gamma**2))
         with mp.workdps(dps):
             g = mp.mpf(gamma)
             return mp.sqrt(1 - 1/(g*g))
