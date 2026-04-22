@@ -5,6 +5,7 @@ Created on Fri Mar  1 12:52:42 2024
 @author: Pep Rubi
 """
 
+import sys
 import numpy as np
 from astropy.constants import c
 from astropy.constants import m_e
@@ -54,13 +55,14 @@ def solve_theta_f(theta_i, gamma, beta, E_out, E_in, m, theta0,
     theta_f = fsolve(f, x0=float(theta0), xtol=xtol, maxfev=maxfev)[0]
     return theta_f
 
+
 def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
                             theta0,
                             domain=(0.0, 2*np.pi),   # forward scattering only 
-                            step0=1e-3,
-                            max_expand=60,
+                            step0=1e-31,
+                            max_expand=10000,
                             method="brentq",
-                            xtol=1e-12, rtol=1e-12, maxiter=200):
+                            xtol=1e-14, rtol=1e-14, maxiter=3000):
     """
     Solve eq_319(theta_f)=0 in theta_f using a bracketing method.
 
@@ -73,48 +75,94 @@ def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
     """
 
     a_dom, b_dom = domain
+    L = b_dom - a_dom        
 
-    # Quick check if a solution exists: 
-    xs = np.linspace(a_dom, b_dom, 2000)
-    ys = [eq_319(x, theta_i, gamma, beta, E_out, E_in, m) for x in xs]
-    #plt.plot(xs, ys)
-    if (min(ys) > 0 and max(ys) > 0) or (min(ys) < 0 and max(ys) < 0):
-        print(ys)
-        raise ValueError(f"No root exists, min(Eq.3.19): {min(ys)}, max(Eq.3.19): {max(ys)} \
-                         for theta_i: {theta_i}, gamma: {gamma}, E_out: {E_out}, E_in: {E_in}")    
+    def wrap(theta):
+        return (theta - a_dom) % L + a_dom
     
-    f = lambda x: eq_319(x, theta_i, gamma, beta, E_out, E_in, m)
+    # Quick check if a solution exists: 
+    xs = np.linspace(a_dom, b_dom, 2000, endpoint=False)
+    ys = np.array([eq_319(x, theta_i, gamma, beta, E_out, E_in, m) for x in xs])
+    #plt.plot(xs, ys)
 
+    if np.all(ys > 0) or np.all(ys < 0):
+        print(ys)
+        raise ValueError(
+            f"No root exists, min(Eq.3.19)={ys.min()}, max(Eq.3.19)={ys.max()} "
+            f"for theta_i={theta_i}, gamma={gamma}, beta={beta}, "
+            f"E_out={E_out}, E_in={E_in}, m={m}"
+        )    
+    
     # Clamp initial guess to domain
-    theta0 = float(np.clip(theta0, a_dom, b_dom))
+    #theta0 = float(np.clip(theta0, a_dom, b_dom))
+
+    # wrap initial guess into periodic domain
+    theta0 = wrap(theta0)    
+
+    # ensures that values are mapped into [a_dom, b_dom),
+    # distances remain meaningful and the periodic continuity is preserved
+    theta0 = (theta0 - a_dom) % L + a_dom
+    
+    # recenter the problem around theta0
+    def f_local(x):
+        return eq_319(wrap(theta0 + x), theta_i, gamma, beta, E_out, E_in, m)
+    
+    #f = lambda x: eq_319((x - a_dom) % L + a_dom, theta_i, gamma, beta, E_out, E_in, m)    
 
     # Evaluate at initial guess
-    f0 = f(theta0)
+    #f0 = f(theta0)
+    f0 = f_local(0.0)
     if f0 == 0.0:
         return theta0
 
     # Expand symmetric bracket around theta0 until sign change
     step = step0
-    a = theta0
-    b = theta0
-    fa = f0
-    fb = f0
+    #a = theta0
+    #b = theta0
+    a = -step
+    b = step
+    #fa = f0
+    #fb = f0
+    fa = f_local(a)
+    fb = f_local(b)
 
     for _ in range(max_expand):
-        a = max(a_dom, theta0 - step)
-        b = min(b_dom, theta0 + step)
-        fa = f(a)
-        fb = f(b)
+
+        #a = max(a_dom, theta0 - step)
+        #b = min(b_dom, theta0 + step)
+        # use periodic wrapping , now the bracket can cross the boundary
+        #a = (theta0 - step - a_dom) % L + a_dom
+        #b = (theta0 + step - a_dom) % L + a_dom
+
+        #print (f"a={a}, a_dom={a_dom}, b={b}, b_dom={b_dom}, fa={fa}, fb={fb}")
 
         if np.isfinite(fa) and np.isfinite(fb) and (fa == 0.0 or fb == 0.0 or fa * fb < 0.0):
             break
 
         # increase step exponentially
-        step *= 1.6
+        step *= 1.1
 
+        a = -step
+        b =  step
+        
+        fa = f_local(a)
+        fb = f_local(b)
+
+        if step > 0.5*L:
+
+            if ys[0] < 0:
+                return theta0
+            
+            #np.set_printoptions(threshold=np.inf)
+            #print(ys)
+            #print(xs)                    
+            raise ValueError(
+                f"Could not bracket root within one full periodic domain: "
+                f"theta0={theta0}, step={step}, fa={fa}, fb={fb}"
+            )
         # If we've covered the whole domain and still no sign change, give up
-        if a <= a_dom + 1e-15 and b >= b_dom - 1e-15:
-            raise ValueError("Could not bracket a root in the specified domain.")
+        #if a <= a_dom + 1e-15 and b >= b_dom - 1e-15:            
+        #    raise ValueError(f"Could not bracket a root in the specified domain: a={a}, a_dom={a_dom}, b={b}, b_dom={b_dom}")
 
     # If exact root at endpoint
     if fa == 0.0:
@@ -124,10 +172,14 @@ def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
     if not (fa * fb < 0.0):
         raise ValueError("Bracket search ended without a sign change.")
 
-    sol = root_scalar(f, bracket=(a, b), method=method, xtol=xtol, rtol=rtol, maxiter=maxiter)
+    sol = root_scalar(f_local, bracket=(a, b), method=method, xtol=xtol, rtol=rtol, maxiter=maxiter)
     if not sol.converged:
         raise RuntimeError(f"root_scalar did not converge: {sol.flag}")
-    return sol.root
+
+    theta_root = wrap(theta0 + sol.root)
+    return theta_root
+    
+#return sol.root
 
 def solve_theta_f_quantity(theta_i, gamma, beta, E_out, E_in, theta0, **kw):
     """
@@ -166,8 +218,10 @@ def compute_theta_f_exact(theta_init, theta, Gamma_3d, beta,
 
     # Iterate only over valid points (still a loop, but much smaller)
     idxs = np.argwhere(valid)
+    #for j, k, i in sorted(idxs, key=lambda x: x[0], reverse=True):    
     for j, k, i in idxs:
         print(j, k , i)
+        #print(j, k , i, '\r', end='')
         x0 = theta_init[j, k, i]
         out[j, k, i] = solve_theta_f_quantity(
             theta[j, k, i],
