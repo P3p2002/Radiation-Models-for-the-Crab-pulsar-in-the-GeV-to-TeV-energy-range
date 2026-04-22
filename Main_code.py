@@ -59,9 +59,9 @@ E0 = 1*u.keV
 E_fotoi2 = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV)#Energies en les quals s'ha dividit els pulse profiles
 #Delta_E_fotoi = [0.2, 1.4, 2.0, 6.0, 4.0, 26.0, 50.0, 160.0]*(u.keV)
 
-E_fotoi_uplim = 2
+E_fotoi_uplim = 7
 E_fotoi_lowlim = -1
-ebins = 30   # was 30
+ebins = 100   # was 30
 #E_fotoi = np.logspace(-1,2, steps)*(u.keV)
 E_fotoi1 = np.logspace(E_fotoi_lowlim,E_fotoi_uplim,ebins)*(u.keV) # Energies inicials dels fotons
 
@@ -73,12 +73,12 @@ Delta_E = E_fotoi1[1:] - E_fotoi1[:-1]      #Espaiat d'energies dels fotons
 
 Delta_log = np.log((E_fotoi1[1:])/E0) -np.log((E_fotoi1[:-1])/E0) #Espaiat logaritmic
 
-steps = 30 #Numero de energia final dels fotons que tindrè
+steps = 100 #Numero de energia final dels fotons que tindrè
 #El logspace em genera un conjunt de 10**n sent n valors entre 1 i 6 espaiats
 #pels steps que li doni
 
 E_foto_lowlim = 6  # 10^6 keV --> 1 GeV
-E_foto_uplim  = 9  # 10^9 keV --> 1 TeV
+E_foto_uplim  = 10  # 10^9 keV --> 1 TeV
 E_fotof1 = np.logspace(E_foto_lowlim,E_foto_uplim, steps)*(u.keV)      # Energies finals dels fotons
 
 E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2        # Bins de les energies finals dels fotons
@@ -132,7 +132,7 @@ print ('theta_init:', theta_init)
 #I try to compute the exact maximum and minimum of the final energy
 def Efotof(Ein, Gamma, beta, thetaL, theta_mm, me):
     num = Ein*me*Gamma*(1-beta*np.cos(thetaL))
-    den = me*Gamma*(1-np.cos(theta_mm)) + Ein*(1-np.cos(thetaL + theta_mm))
+    den = me*Gamma*(1-beta*np.cos(theta_mm)) + Ein*(1-np.cos(thetaL + theta_mm))
     return num/den
 
 def derEfotof(Ein, Gamma, beta, theta, theta_L, me):
@@ -142,15 +142,18 @@ def derEfotof(Ein, Gamma, beta, theta, theta_L, me):
     return num
 
 ind1 = -1
+
 angleplot = np.linspace(0, 2*np.pi, 2000)*u.rad
 derfinal = derEfotof(E_fotoi_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta[ind1][ind1][ind1], theta[ind1][ind1][ind1], angleplot, m_keV)
 Ef = Efotof(E_fotoi_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta[ind1][ind1][ind1], theta[ind1][ind1][ind1], angleplot, m_keV)
-gamma_test = 50272.72727272726
-beta_test = 1 - 1/50272.72727272726**2
-E_in_test = 0.11344805015839611
-theta_test = 1.4665862800361515
-Eout_test = 25097162.47505813
-Etest = Eout_test - Efotof(E_in_test,gamma_test, beta_test, theta_test, angleplot.value ,m_keV.value)
+
+'''   TESTS
+gamma_test = Gamma_3d[13,0,0]
+beta_test = beta_f(gamma_test, dps= None)
+E_in_test = E_fotoi_3d[13,0,0]
+theta_test = theta[13,0,0]
+Eout_test = E_fotof_3d[13,0,0]
+Etest = Eout_test - Efotof(E_in_test,gamma_test, beta_test, theta_test, angleplot ,m_keV)
 plt.plot(angleplot, Etest)
 plt.yscale("log")
 
@@ -164,7 +167,7 @@ ax = plt.gca()
 ax.yaxis.set_major_formatter(ScalarFormatter())
 ax.ticklabel_format(style='plain', axis='y', useOffset=False)
 plt.show()
-
+''' 
 theta_fs = np.arctan(-E_fotoi_3d*np.sin(theta)/(E_fotoi_3d*np.cos(theta) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
@@ -499,18 +502,19 @@ weights = Delta_log * E_fotoi
 weights_4d = weights[None, None, :, None]
 
 # Broadcast valid mask to include phase dimension
-valid_4d = valid[None, :, :, :]
+valid_4d = valid  #[None, :, :, :]
 
 # Masked weighted sum over E_fotoi axis (axis=2)
 #first_int = np.sum(first * weights_4d * valid_4d, axis=2)
 
 # Use np.where to avoid nan * 0 = nan issue
-masked = np.where(valid_4d, first * weights_4d, 0.0)
+masked = np.where(valid, first * weights_4d, 0.0)
 first_int = np.sum(masked, axis=2)
 
 # With units and without units, now I do not need
 #to multiply by the units as this conserves the units 
 #during the whole proces
+#first_int = np.squeeze(first_int, axis=0)
 first_int = first_int
 first_intu = first_int.value
 
@@ -544,6 +548,8 @@ if not os.path.exists(folder_name):
         print(f"Folder '{folder_name}' created successfully.")
 else:
     print(f"Folder '{folder_name}' already exists.")
+
+#first_intu = np.squeeze(first_intu, axis=0)
     
 for i in range(len(phase)):
     file_name = "First_int_" + str(i)
@@ -619,7 +625,7 @@ plt.plot(E_fotof.to('MeV') , SED , label = "Theoretical SED")
 plt.plot(E_fotof.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
 plt.plot(cr, cry, label ="Model of CR")
-plt.ylim((1e-10, 1e-2))
+plt.ylim((1e-8, 1e-1))
 plt.xlim((1e1, 1e7))
 plt.xscale("log")
 plt.yscale("log")
