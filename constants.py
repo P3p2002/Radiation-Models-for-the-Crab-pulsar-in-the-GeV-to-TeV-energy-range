@@ -7,9 +7,9 @@ from astropy.constants import e
 from astropy.constants import eps0
 from astropy.constants import h
 
-m = m_e*c**2             # electron mass in J 
-m_keV = m.to('keV')      # electron mass in keV
-m_unitless = m/(u.keV)   # electron mass in keV unitless
+m_J = m_e*c**2             # electron mass in J 
+m_keV = m_J.to('keV')      # electron mass in keV
+m_unitless = m_keV/(u.keV) # electron mass in keV unitless
 
 # Bohr radius in m 
 r_0 = (e.value)**2/(4*np.pi*eps0.value*m_e.value*c.value**2)*u.m
