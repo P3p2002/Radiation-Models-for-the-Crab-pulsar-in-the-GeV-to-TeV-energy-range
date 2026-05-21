@@ -214,10 +214,15 @@ def compute_theta_f_exact(theta_init, theta, Gamma_3d, beta,
     out = np.full((nJ, nK, nI), fill_value, dtype=float)
 
     # Validity mask: note min/max are (nK, nI), broadcast to (nJ, nK, nI)
-    valid = (E_fotof_3d > E_fotof_min) & (E_fotof_3d < E_fotof_max)
+
+    print (E_fotof_max)
+
+
+    valid = (E_fotof_3d >= E_fotof_min) & (E_fotof_3d <= E_fotof_max)
 
     # Iterate only over valid points (still a loop, but much smaller)
     idxs = np.argwhere(valid)
+
     #for j, k, i in sorted(idxs, key=lambda x: x[0], reverse=True):    
     for j, k, i in idxs:
         print(j, k , i)
