@@ -35,7 +35,7 @@ R0 =  0.9  # FIXME 0.9  # Initial radii from which the positrons start to accele
 RLI = 10   # Upper integracion limit
 Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
-delta_R = 0.01   # Step width for the integral (in units of RLC)
+delta_R = 0.1   # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(1., RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 a_arr  = np.arcsin(1/R_arr)           # array angles obtained from the simplification for R>>RLC
@@ -50,18 +50,18 @@ epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Ener
 
 log_epsilon_max = 8     # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_bins= 100   # 100  # was 30 number of logarithmically-space bins of epsilon
+log_epsilon_bins= 15   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
 epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon = epsilon_arr[1:] - epsilon_arr[:-1]       # Energy spacing of the incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0) # Spacing of natural logarithm of incident photon energies
 
-log_steps = 100 # Number of final photon energies 
+log_steps = 15 # Number of final photon energies 
 
 log_E_min   = 6   # 10^6 keV --> 1 GeV
 log_E_max   = 11  # 10^11 keV --> 100 TeV
-log_E_bins  = 100 
+log_E_bins  = 15
 E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
 E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
@@ -244,9 +244,27 @@ b1 = 0.057
 #Aquest espectre es més precís
 mask = epsilon_mean > 0.2 * u.keV
 
-print ('epsilon: ', epsilon)
+print ('epsilon: ', epsilon_mean)
 
 print ('mask: ', mask)
+###Experimental data 1
+#Points that range from 2e-4 MeV to 2e-2 MeV
+Interval_1_2 = np.array([0.00018529204335398188, 0.00026826936312485507, 0.000404709199115943, 0.0006628706949378706, 0.0011787679216418198, 0.0017782806652028994, 0.0027952995832933696, 0.004970836558590657, 0.008483426131078615, 0.014478204824082668, 0.02682698680657344, 0.049708318805032674, 0.08483450082550081, 0.13894990437515836, 0.22758518925665774])
+Data_1_2 = np.array([0.00019306977288832496, 0.000249359061432569, 0.00031050117634809897, 0.00040102813760005114, 0.0005179474679231213, 0.0006218004555057681, 0.0006689545056200522, 0.0008329802002184533, 0.000896150501946605, 0.000896150501946605, 0.0008639889313244301, 0.0008639889313244301, 0.0008030857221391513, 0.0008030857221391513, 0.0007742641144826989])
+#Points that range from 1e-7 MeV to 2e-4 MeV
+Interval_1_3 = np.array([1.1787695460435082e-7, 1.9306991565211053e-7, 2.9126328996497e-7, 4.3939680501067657e-7, 6.628707506370985e-7, 0.0000010857117945006027, 0.0000017782804560086247, 0.0000027952989960892988, 0.00000404708702618929, 0.000006361673467383023, 0.000010857102618453848, 0.00001637894422619578, 0.000025746246154698523, 0.00004393972185302389, 0.00006906934166047259, 0.00011312823624679939, 0.0002096177914042753])
+Data_1_3 = np.array([6.011005284041015e-7, 8.966678019375663e-7, 0.0000012437607565150496, 0.0000017890865809929578, 0.0000026687987387302526, 0.0000041284737078301905, 0.000005726572952667369, 0.000009186661857373139, 0.000012742745392311902, 0.00001767536050137334, 0.00002636651591589646, 0.000035267021797634925, 0.000052608089317734, 0.00007036692442105561, 0.00010496706036384912, 0.00014040040241817682, 0.00020943671528903202])
+
+#The same, but in keV
+Interval_1_2 = Interval_1_2*1e3
+Data_1_2 = Data_1_2*1e3
+
+Interval_1_3 = Interval_1_3*1e3
+Data_1_3 = Data_1_3*1e3
+#Points that range from 1e-4 MeV to 2e1 MeV
+Data_tot = np.concatenate((Data_1_3, Data_1_2))
+Interval_tot = np.concatenate((Interval_1_3, Interval_1_2))
+
 ### Experimental data obtained with plot digitalizer
 Interval_x = np.array([0.0003162276172147746, 0.0006628700711058477, 0.001279801052582922, 0.002470912307632171, 0.004970822524341731, 0.010419739772213055, 0.02011739496035263, 0.035774307157273, 0.07498939446834635, 0.15719128418077574, 0.3162285100282012, 0.6105401886168376, 1.1312834556437819, 1.8529221773372084, 4.970827202420301, 12.798058703114059, 20.117413892984658, 32.95018783048523, 66.28706949378679, 127.98046658775885, 227.58476089298526, 388.4066097985313, 749.8967676108324, 1279.803461444897, 2096.1821765480395, 3727.6072514469956, 6628.719426036748])
 Interval_y = np.array([0.000719370045023045, 0.0008129133633486966, 0.0008674801800921799, 0.0009142518392550057, 0.0009532283408371741, 0.0009844093279992444, 0.0009922048424193426, 0.0009844093279992444, 0.0009688190128379296, 0.0009532283408371741, 0.0009220473536751038, 0.0008908660096735928, 0.0008362991929301096, 0.0007817323761866263, 0.0007271652026037024, 0.0007583465466052134, 0.0006024408971159803, 0.0005790550675345674, 0.0006336218842780508, 0.0006725983858602192, 0.0006803935434408766, 0.0006881890578609747, 0.0006881890578609747, 0.0006570077138594637, 0.0006258267266973932, 0.000540078565952399, 0.0005088975787903287])
@@ -267,10 +285,11 @@ for i in range(int(len(Inc_y)/2)):
     sigma2 += a**2
 sigma = np.sqrt(sigma2)
 
-(Sedfit, xi, poptspectrum) = Xi_Fit(Interval_y, Interval_x, 7, sigma)  
+(Sedfit, xi, poptspectrum) = Xi_Fit(Interval_y, Interval_x, 6, sigma)  
 
 plt.plot(Interval_x, Sedfit, label = "Fitting quadratic")
-plt.plot(Interval_x, Interval_y, '.', label = "Interval 4")
+plt.plot(Interval_tot, Data_tot, '.', label = "Interval 4")
+plt.plot(Interval_x, Interval_y, '.', label = "Interval 5")
 
 plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
 plt.xlabel(r"E (keV)")
@@ -280,31 +299,30 @@ plt.legend()
 if plt.isinteractive():
     plt.show()
 
-spec1d2 = SEDfromFIT(np.log10(epsilon/E0), *poptspectrum)
+spec1d2 = SEDfromFIT(np.log10(epsilon_mean/E0), *poptspectrum)
+
 """ I will need to change this with the new polynomial"""
-spec_1d = np.empty(len(epsilon)) * (1 / E0).unit
+spec_1d = np.empty(len(epsilon_mean)) * (1 / E0).unit
 spec_1d[mask] = (
-    K * (epsilon[mask] / E0) ** (-a - 1 - b * np.log10(epsilon[mask] / E0)) / (E0)
+    K * (epsilon_mean[mask] / E0) ** (-a - 1 - b * np.log10(epsilon_mean[mask] / E0)) / (E0)
 )
 spec_1d[~mask] = (
-    K1 * (epsilon[~mask] / E0) ** (-a1 - 1 - b1 * np.log10(epsilon[~mask] / E0)) / E0
+    K1 * (epsilon_mean[~mask] / E0) ** (-a1 - 1 - b1 * np.log10(epsilon_mean[~mask] / E0)) / E0
 )
 
 # Broadcast to shape (len(E_mean), len(epsilon), len(R))
 #I change it to the new fiting
 spectra = np.broadcast_to(
-    spec1d2.reshape(1, len(epsilon), 1),
-    (len(E_mean), len(epsilon), len(R))
+    spec1d2.reshape(1, len(epsilon_mean), 1),
+    (len(E_mean), len(epsilon_mean), len(R_arr))
 )*(1/E0).unit
-#spectra = np.broadcast_to(
-#    spec_1d.reshape(1, len(epsilon), 1),
-#    (len(E_mean), len(epsilon), len(R))
-#)*spec_1d.unit
+
+
 ### As this does not have the  right units (which should be MeV/(cm^2 s))
 ### we expect the final result, i.e., the second integral to have the same units
 
-plt.plot(epsilon, spec_1d, '.', label = "Original fit")
-plt.plot(epsilon, spec1d2, '.', label = "Polynomial fit")
+plt.plot(epsilon_mean, spec_1d, '.', label = "Original fit")
+plt.plot(epsilon_mean, spec1d2, '.', label = "Polynomial fit")
 plt.plot(Interval_x, Interval_y, '.', label = "Data")
 
 plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
@@ -336,12 +354,12 @@ print ('spectra: ', spectra)
 #Inicialtzo la variable de la fase
 delta_phase = 0.004
 phase = np.arange(0.2,0.5,delta_phase)
-phase_3d = add_dim_phase(phase, E_mean, R) #El poso en les dimensions que em conve
+phase_3d = add_dim_phase(phase, E_mean, R_arr) #El poso en les dimensions que em conve
 time = phase_3d*P
 
 
 #Canvio les variables segons les dimensions que em conve
-R_2d = add_dimension_R(R, E_mean)
+R_2d = add_dimension_R(R_arr, E_mean)
 R_3d = add_dimension_R(R_2d, phase)
 
 #Busco els parametres dels pulse profiles
@@ -407,7 +425,7 @@ def Time_d(time, R, theta_3d):
 n_phase = len(phase)
 n_ef = len(E_mean)
 n_ei = len(epsilon_mean)
-n_r = len(R)
+n_r = len(R_arr)
 
 # Output without the redundant E_mean dimension first
 base = np.empty((n_phase, n_ei, n_r), dtype=float)
@@ -421,7 +439,7 @@ idx = np.clip(idx, 0, len(epsilon_pulse_arr) - 1)
 
 for l, ph in enumerate(phase):
     # Time_d depends only on phase[l] and R
-    temps = Time_d(ph * P, R, theta_arr)    
+    temps = Time_d(ph * P, R_arr, theta_arr)    
     #temps = np.array([Time_d(ph * P, r, th) for r, th in zip(R, theta_arr)])
 
     for i in range(n_ei):
@@ -639,13 +657,13 @@ Es = []
 adjusts = []
 inc_adjusts = []
 
-r_mesh, phase_mesh = np.meshgrid(R/RLC, phase)
+r_mesh, phase_mesh = np.meshgrid(R_arr/RLC, phase)
 
 #If I put rho = 1, then this rho2 = 1 also.
 rho2 = 1
 #rho2 = np.transpose(rho, axes = [1,0,2])
 
-for i in range(24):
+for i in range(len(secitr_units)):
     
     #plt.contourf(r_mesh, phase_mesh, rho2[i])
     #plt.show()
@@ -744,7 +762,7 @@ tmax_com = second_der(tmax*u.rad, Gamma_arr, beta_arr, theta_arr, E_i_0)
 E_log_max2 = E_i_0*m*Gamma_arr*(1-beta_arr*np.cos(theta_arr))/(m*Gamma_arr*(1-beta_arr*np.cos(tmax*u.rad)) + E_i_0*(1-np.cos(theta_arr+tmax*u.rad)))
 
 #plt.plot(R[R <= 2*RLC]/RLC, E_log_max2[R <= 2*RLC])
-plt.plot(R/RLC, E_log_max2)
+plt.plot(R_arr/RLC, E_log_max2)
 plt.xlabel(r"R/R$_{L}$", fontsize = 20)
 plt.ylabel(r"$E_{\gamma}^{max}$(keV)", fontsize = 20)
 plt.savefig("Energia_max_0_02eV")
