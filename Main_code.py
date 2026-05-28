@@ -277,7 +277,8 @@ plt.xlabel(r"E (keV)")
 plt.xscale("log")
 plt.yscale("log")
 plt.legend()
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 spec1d2 = SEDfromFIT(np.log10(epsilon/E0), *poptspectrum)
 """ I will need to change this with the new polynomial"""
@@ -295,6 +296,10 @@ spectra = np.broadcast_to(
     spec1d2.reshape(1, len(epsilon), 1),
     (len(E_mean), len(epsilon), len(R))
 )*(1/E0).unit
+#spectra = np.broadcast_to(
+#    spec_1d.reshape(1, len(epsilon), 1),
+#    (len(E_mean), len(epsilon), len(R))
+#)*spec_1d.unit
 ### As this does not have the  right units (which should be MeV/(cm^2 s))
 ### we expect the final result, i.e., the second integral to have the same units
 
@@ -307,7 +312,8 @@ plt.xlabel(r"E (keV)")
 plt.xscale("log")
 plt.yscale("log")
 plt.legend()
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 
 print ('spectra: ', spectra)
@@ -618,7 +624,8 @@ plt.title(
     fontsize=20)
 plt.legend(fontsize = 20)
 plt.savefig("SED_theoretical")
-plt.show()
+if plt.isinteractive():
+    plt.show()
 #Ara ja he comparat els SEDs
 
 #Això servira per la normalitació
@@ -670,11 +677,13 @@ for i in range(24):
         plt.xlabel("Phase(rad)", fontsize = 25)
         plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 25)
         plt.legend()
-        plt.show()
+        if plt.isinteractive():
+            plt.show()
 plt.xlabel("Phase(rad)", fontsize = 25)
 plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 25)
 plt.legend()
-plt.show()    
+if plt.isinteractive():
+    plt.show()    
 
 #Ho torno a transposar per conveniencia
 seci_units = np.transpose(secitr_units)
@@ -709,7 +718,8 @@ plt.ylabel(r'$E_{\gamma}$ (GeV)', fontsize = 20)
 plt.xlabel('Phase', fontsize = 20)
 plt.yscale("log")
 plt.savefig("Theoretical_Displacement_peak")
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 #A partir d'aqui ho faig per veure quina és l'energia inicial més baixa dels fotons que em permet
 #tenir una energia finals dels fotons de 1 GeV
@@ -738,7 +748,8 @@ plt.plot(R/RLC, E_log_max2)
 plt.xlabel(r"R/R$_{L}$", fontsize = 20)
 plt.ylabel(r"$E_{\gamma}^{max}$(keV)", fontsize = 20)
 plt.savefig("Energia_max_0_02eV")
-plt.show()
+if plt.isinteractive():
+    plt.show()
    
 
 #Resultats dels valors experimentals
@@ -764,7 +775,8 @@ plt.xlabel("phase", fontsize = 20)
 plt.ylabel("Normalized flux", fontsize = 20)
 plt.legend(fontsize = 20)
 plt.savefig("Flux_obtained")
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 
 #Dades Aharonian
@@ -800,7 +812,8 @@ plt.xlabel("phase", fontsize = 20)
 plt.ylabel("Normalized flux", fontsize = 20)
 plt.legend(fontsize = 17)
 plt.savefig("Flux_theory")
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 """
 the_f = np.arange(0,2*np.pi,0.01)
