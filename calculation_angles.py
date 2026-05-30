@@ -180,6 +180,10 @@ def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
     return theta_root
 
 @njit
+def wrap_angle(theta, a_dom, L):
+    return (theta - a_dom) % L + a_dom
+
+@njit
 def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                                  theta0,
                                  domain=(0.0, 2*np.pi),
@@ -201,14 +205,11 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
     a_dom, b_dom = domain
     L = b_dom - a_dom
 
-    def wrap(theta):
-        return (theta - a_dom) % L + a_dom
-
-    theta0 = wrap(theta0)
+    theta0 = wrap_angle(theta0, a_dom, L)
 
     def f_local(x):
         return eq_319(
-            wrap(theta0 + x),
+            wrap_angle(theta0 + x, a_dom, L),
             theta_i,
             gamma,
             beta,
@@ -250,9 +251,9 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
 
         if np.isfinite(fa) and np.isfinite(fb):
             if fa == 0.0:
-                return wrap(theta0 + a)
+                return wrap_angle(theta0 + a, a_dom, L)
             if fb == 0.0:
-                return wrap(theta0 + b)
+                return wrap_angle(theta0 + b, a_dom, L)
             if fa * fb < 0.0:
                 break
 
@@ -278,7 +279,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
     if not sol.converged:
         raise RuntimeError(f"root_scalar did not converge: {sol.flag}")
 
-    return wrap(theta0 + sol.root)
+    return wrap_angle(theta0 + sol.root, a_dom, L)
 
 def solve_theta_f_quantity(theta_i, gamma, beta, E_out, E_in, theta0, **kw):
     """
