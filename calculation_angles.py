@@ -13,7 +13,7 @@ import astropy.units as u
 from constants import m_keV
 from scipy.optimize import fsolve, bisect, root_scalar
 import matplotlib.pyplot as plt
-
+from numba import njit
 
 def eq_319(theta_f, theta_i, gamma, beta, E_out, E_in, m):
     """
@@ -178,8 +178,107 @@ def solve_theta_f_bracketed(theta_i, gamma, beta, E_out, E_in, m,
 
     theta_root = wrap(theta0 + sol.root)
     return theta_root
-    
-#return sol.root
+
+@njit
+def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
+                                 theta0,
+                                 domain=(0.0, 2*np.pi),
+                                 step0=1e-8,
+                                 expand_factor=2.0,
+                                 max_expand=100,
+                                 method="brentq",
+                                 xtol=1e-12,
+                                 rtol=1e-12,
+                                 maxiter=200,
+                                 check_exists=False,
+                                 ncheck=512):
+    """
+    Faster bracketed theta_f solver.
+
+    Assumes all inputs are plain floats, not Astropy Quantities.
+    """
+
+    a_dom, b_dom = domain
+    L = b_dom - a_dom
+
+    def wrap(theta):
+        return (theta - a_dom) % L + a_dom
+
+    theta0 = wrap(theta0)
+
+    def f_local(x):
+        return eq_319(
+            wrap(theta0 + x),
+            theta_i,
+            gamma,
+            beta,
+            E_out,
+            E_in,
+            m,
+        )
+
+    f0 = f_local(0.0)
+
+    if not np.isfinite(f0):
+        raise ValueError(f"Non-finite f0 at theta0={theta0}: {f0}")
+
+    if f0 == 0.0:
+        return theta0
+
+    if check_exists:
+        xs = np.linspace(a_dom, b_dom, ncheck, endpoint=False)
+        ys = np.array([
+            eq_319(x, theta_i, gamma, beta, E_out, E_in, m)
+            for x in xs
+        ])
+
+        if np.all(ys > 0) or np.all(ys < 0):
+            raise ValueError(
+                f"No root exists, min={ys.min()}, max={ys.max()}, "
+                f"theta_i={theta_i}, gamma={gamma}, beta={beta}, "
+                f"E_out={E_out}, E_in={E_in}, m={m}"
+            )
+
+    step = step0
+
+    for _ in range(max_expand):
+        a = -step
+        b = step
+
+        fa = f_local(a)
+        fb = f_local(b)
+
+        if np.isfinite(fa) and np.isfinite(fb):
+            if fa == 0.0:
+                return wrap(theta0 + a)
+            if fb == 0.0:
+                return wrap(theta0 + b)
+            if fa * fb < 0.0:
+                break
+
+        step *= expand_factor
+
+        if step > 0.5 * L:
+            raise ValueError(
+                f"Could not bracket root within half periodic domain: "
+                f"theta0={theta0}, step={step}, fa={fa}, fb={fb}"
+            )
+    else:   # The else clause executes after the loop completes normally. This means that the loop did not encounter a break statement.
+        raise ValueError("Bracket search ended without sign change.")
+
+    sol = root_scalar(
+        f_local,
+        bracket=(a, b),
+        method=method,
+        xtol=xtol,
+        rtol=rtol,
+        maxiter=maxiter,
+    )
+
+    if not sol.converged:
+        raise RuntimeError(f"root_scalar did not converge: {sol.flag}")
+
+    return wrap(theta0 + sol.root)
 
 def solve_theta_f_quantity(theta_i, gamma, beta, E_out, E_in, theta0, **kw):
     """
@@ -243,6 +342,84 @@ def compute_theta_f_exact(theta_init, theta, Gamma_3d, beta,
             #       E_fotof_3d[j, k, i],
             #       E_fotoi_3d[j, k, i])
     return out * u.rad
+
+@njit
+def _solve_one_flat(theta_i, gamma, beta, E_out, E_in, theta0, m_val):
+    return solve_theta_f_bracketed_fast(
+        theta_i,
+        gamma,
+        beta,
+        E_out,
+        E_in,
+        m_val,
+        theta0,
+        step0=1e-8,
+        expand_factor=2.0,
+        check_exists=False,
+    )
+
+def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
+                                   E_fotof_3d, E_fotoi_3d,E_fotof_min, E_fotof_max,
+                                   fill_value=10000.0,
+                                   n_jobs=-1):
+
+    from joblib import Parallel, delayed
+
+    nJ, nK, nI = E_fotof_3d.shape
+
+    out = np.full((nJ, nK, nI), fill_value, dtype=float)
+
+    valid = (
+        (E_fotof_3d >= E_fotof_min)
+        & (E_fotof_3d <= E_fotof_max)
+    )
+
+    idxs = np.argwhere(valid)
+
+    # Convert units once for better performance
+    theta_val = theta.to_value(u.rad)
+    theta_init_val = theta_init.to_value(u.rad)
+
+    unitE = E_fotof_3d.unit
+    E_fotof_val = E_fotof_3d.to_value(unitE)
+    E_fotoi_val = E_fotoi_3d.to_value(unitE)
+    m_val = m_keV.to_value(unitE)
+
+    # This avoids repeated 3D indexing in the workers and makes the loop faster
+    jj, kk, ii = np.where(valid)
+
+    theta_i_arr = theta_val[jj, kk, ii]
+    gamma_arr   = Gamma_3d[jj, kk, ii]
+    beta_arr    = beta[jj, kk, ii]
+    Eout_arr    = E_fotof_val[jj, kk, ii]
+    Ein_arr     = E_fotoi_val[jj, kk, ii]
+    theta0_arr  = theta_init_val[jj, kk, ii]
+    
+    n_jobs=8
+    batch_size=500
+    
+    values = Parallel(
+        n_jobs=n_jobs,
+        backend="loky",
+        batch_size=batch_size,
+    )(
+        delayed(_solve_one_flat)(
+            theta_i_arr[n],
+            gamma_arr[n],
+            beta_arr[n],
+            Eout_arr[n],
+            Ein_arr[n],
+            theta0_arr[n],
+            m_val,
+        )
+        for n in range(len(jj))
+    )
+
+    out[jj, kk, ii] = values    
+
+    return out * u.rad
+
+
 
 #Per solucionar això ho haurè de fer elements per element de la funció, 
 # és a dir, que haurè de fer un bucle tridimensional
