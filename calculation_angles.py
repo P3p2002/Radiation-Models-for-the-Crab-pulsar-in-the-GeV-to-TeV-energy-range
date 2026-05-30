@@ -188,7 +188,7 @@ def wrap_angle(theta, a_dom, L):
 def f_local_numba(x, theta0, a_dom, L,
                   theta_i, gamma, beta, E_out, E_in, m):
     theta = wrap_angle(theta0 + x, a_dom, L)
-    return eq_319_numba(theta, theta_i, gamma, beta, E_out, E_in, m)
+    return eq_319(theta, theta_i, gamma, beta, E_out, E_in, m)
 
 @njit
 def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
@@ -223,19 +223,45 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
     if f0 == 0.0:
         return theta0
 
-    if check_exists:
-        xs = np.linspace(a_dom, b_dom, ncheck, endpoint=False)
-        ys = np.array([
-            eq_319(x, theta_i, gamma, beta, E_out, E_in, m)
-            for x in xs
-        ])
+    #if check_exists:
+    #    xs = np.linspace(a_dom, b_dom, ncheck, endpoint=False)
+    #    ys = np.array([
+    #        eq_319(x, theta_i, gamma, beta, E_out, E_in, m)
+    #        for x in xs
+    #    ])
+    #
+    #    if np.all(ys > 0) or np.all(ys < 0):
+    #        raise ValueError(
+    #            f"No root exists, min={ys.min()}, max={ys.max()}, "
+    #            f"theta_i={theta_i}, gamma={gamma}, beta={beta}, "
+    #            f"E_out={E_out}, E_in={E_in}, m={m}"
+    #        )
 
-        if np.all(ys > 0) or np.all(ys < 0):
-            raise ValueError(
-                f"No root exists, min={ys.min()}, max={ys.max()}, "
-                f"theta_i={theta_i}, gamma={gamma}, beta={beta}, "
-                f"E_out={E_out}, E_in={E_in}, m={m}"
-            )
+    if check_exists:
+        y0 = eq_319(a_dom, theta_i, gamma, beta, E_out, E_in, m)
+
+        all_pos = y0 > 0.0
+        all_neg = y0 < 0.0
+
+        dx = (b_dom - a_dom) / ncheck
+
+        ymin = y0
+        ymax = y0
+
+        for q in range(1, ncheck):
+            x = a_dom + q * dx
+            y = eq_319_numba(x, theta_i, gamma, beta, E_out, E_in, m)
+            
+            if y < ymin:
+                ymin = y
+            if y > ymax:
+                ymax = y
+
+            all_pos = all_pos and (y > 0.0)
+            all_neg = all_neg and (y < 0.0)
+
+        if all_pos or all_neg:
+            return np.nan
 
     step = step0
 
