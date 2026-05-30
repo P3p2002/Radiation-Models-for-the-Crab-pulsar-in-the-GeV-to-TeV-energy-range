@@ -15,6 +15,7 @@ from scipy.optimize import fsolve, bisect, root_scalar
 import matplotlib.pyplot as plt
 from numba import njit
 
+@njit
 def eq_319(theta_f, theta_i, gamma, beta, E_out, E_in, m):
     """
     Eq. (3.19) rearranged as f(theta_f)=0.
@@ -184,6 +185,12 @@ def wrap_angle(theta, a_dom, L):
     return (theta - a_dom) % L + a_dom
 
 @njit
+def f_local_numba(x, theta0, a_dom, L,
+                  theta_i, gamma, beta, E_out, E_in, m):
+    theta = wrap_angle(theta0 + x, a_dom, L)
+    return eq_319_numba(theta, theta_i, gamma, beta, E_out, E_in, m)
+
+@njit
 def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                                  theta0,
                                  domain=(0.0, 2*np.pi),
@@ -207,18 +214,8 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
 
     theta0 = wrap_angle(theta0, a_dom, L)
 
-    def f_local(x):
-        return eq_319(
-            wrap_angle(theta0 + x, a_dom, L),
-            theta_i,
-            gamma,
-            beta,
-            E_out,
-            E_in,
-            m,
-        )
-
-    f0 = f_local(0.0)
+    f0 = f_local_numba(0.0,theta0, a_dom, L,
+                       theta_i, gamma, beta, E_out, E_in, m)
 
     if not np.isfinite(f0):
         raise ValueError(f"Non-finite f0 at theta0={theta0}: {f0}")
@@ -246,9 +243,11 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         a = -step
         b = step
 
-        fa = f_local(a)
-        fb = f_local(b)
-
+        fa = f_local(a,theta0, a_dom, L,
+                     theta_i, gamma, beta, E_out, E_in, m)
+        fb = f_local(b,theta0, a_dom, L,
+                     theta_i, gamma, beta, E_out, E_in, m)
+        
         if np.isfinite(fa) and np.isfinite(fb):
             if fa == 0.0:
                 return wrap_angle(theta0 + a, a_dom, L)
