@@ -243,9 +243,9 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         a = -step
         b = step
 
-        fa = f_local(a,theta0, a_dom, L,
+        fa = f_local_numba(a,theta0, a_dom, L,
                      theta_i, gamma, beta, E_out, E_in, m)
-        fb = f_local(b,theta0, a_dom, L,
+        fb = f_local_numba(b,theta0, a_dom, L,
                      theta_i, gamma, beta, E_out, E_in, m)
         
         if np.isfinite(fa) and np.isfinite(fb):
@@ -266,19 +266,63 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
     else:   # The else clause executes after the loop completes normally. This means that the loop did not encounter a break statement.
         raise ValueError("Bracket search ended without sign change.")
 
-    sol = root_scalar(
-        f_local,
-        bracket=(a, b),
-        method=method,
-        xtol=xtol,
-        rtol=rtol,
-        maxiter=maxiter,
+    #sol = root_scalar(
+    #    f_local,
+    #    bracket=(a, b),
+    #    method=method,
+    #    xtol=xtol,
+    #    rtol=rtol,
+    #    maxiter=maxiter,
+    #)
+    #
+    #if not sol.converged:
+    #    raise RuntimeError(f"root_scalar did not converge: {sol.flag}")
+    #return wrap_angle(theta0 + sol.root, a_dom, L)
+    
+    # NEED TO REPLACE ROOT_SCALAR BY OWN FUNCTION WHICH COMPILES ON NJIT
+
+    left = a
+    right = b
+
+    fleft = f_local_numba(
+        left, theta0, a_dom, L,
+        theta_i, gamma, beta, E_out, E_in, m
     )
+    
+    fright = f_local_numba(
+        right, theta0, a_dom, L,
+        theta_i, gamma, beta, E_out, E_in, m
+    )
+    
+    if fleft == 0.0:
+        return wrap_angle(theta0 + left, a_dom, L)
+    
+    if fright == 0.0:
+        return wrap_angle(theta0 + right, a_dom, L)
+    
+    if fleft * fright > 0.0:
+        return np.nan
 
-    if not sol.converged:
-        raise RuntimeError(f"root_scalar did not converge: {sol.flag}")
+    for _ in range(maxiter):
+        mid = 0.5 * (left + right)
+        
+        fmid = f_local_numba(
+            mid, theta0, a_dom, L,
+            theta_i, gamma, beta, E_out, E_in, m
+        )
+        
+        if fmid == 0.0 or abs(right - left) < xtol:
+            return wrap_angle(theta0 + mid, a_dom, L)
+        
+    if fleft * fmid < 0.0:
+        right = mid
+        fright = fmid
+    else:
+        left = mid
+        fleft = fmid
+        
+    return wrap_angle(theta0 + 0.5 * (left + right), a_dom, L)
 
-    return wrap_angle(theta0 + sol.root, a_dom, L)
 
 def solve_theta_f_quantity(theta_i, gamma, beta, E_out, E_in, theta0, **kw):
     """
