@@ -293,6 +293,7 @@ sigma = np.sqrt(sigma2)
 
 (Sedfit, xi, poptspectrum) = Xi_Fit(Interval_y, Interval_x, 6, sigma)  
 
+plt.figure()
 plt.plot(Interval_x, Sedfit, label = "Fitting quadratic")
 plt.plot(Interval_tot, Data_tot, '.', label = "Interval 4")
 plt.plot(Interval_x, Interval_y, '.', label = "Interval 5")
@@ -647,7 +648,7 @@ plt.title(
     rf"SED with $\epsilon_{{max}} = 10^{{{log_epsilon_max}}}$ and $E_{{\gamma,max}} = 10^{{{log_E_max}}}$",
     fontsize=20)
 plt.legend(fontsize = 20)
-plt.savefig("SED_theoretical")
+plt.savefig("SED_theoretical.png")
 if plt.isinteractive():
     plt.show()
 #Ara ja he comparat els SEDs
@@ -669,6 +670,7 @@ r_mesh, phase_mesh = np.meshgrid(R_arr/RLC, phase)
 rho2 = 1
 #rho2 = np.transpose(rho, axes = [1,0,2])
 
+plt.clf()
 for i in range(len(secitr_units)):
     
     #plt.contourf(r_mesh, phase_mesh, rho2[i])
@@ -685,7 +687,8 @@ for i in range(len(secitr_units)):
     adjusts.append(popt)
     inc_adjusts.append(pcov)
     
-    plt.plot(phase, secitr_units[i], label = "excate"+str(i))
+    #plt.plot(phase, secitr_units[i], label = "excate"+str(i))
+    plt.plot(phase, secitr_units[i], label = "_nolegend_")
     
     max_value.append(np.max(asym_lorentz_C(phase,  *popt)))
     
@@ -768,6 +771,7 @@ tmax_com = second_der(tmax*u.rad, Gamma_arr, beta_arr, theta_arr, E_i_0)
 E_log_max2 = E_i_0*m*Gamma_arr*(1-beta_arr*np.cos(theta_arr))/(m*Gamma_arr*(1-beta_arr*np.cos(tmax*u.rad)) + E_i_0*(1-np.cos(theta_arr+tmax*u.rad)))
 
 #plt.plot(R[R <= 2*RLC]/RLC, E_log_max2[R <= 2*RLC])
+plt.clf()
 plt.plot(R_arr/RLC, E_log_max2)
 plt.xlabel(r"R/R$_{L}$", fontsize = 20)
 plt.ylabel(r"$E_{\gamma}^{max}$(keV)", fontsize = 20)
@@ -793,6 +797,7 @@ norm2 = np.sum(result)*delta_phase
 max_f_1 = np.max(flux)
 max_f_2 = np.max(result)
 
+plt.clf()
 plt.plot(phase, flux/norm, label = "theoretical result")
 plt.plot(phase, result/norm2, label = "experimental result")
 plt.xlabel("phase", fontsize = 20)
