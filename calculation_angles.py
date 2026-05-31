@@ -237,8 +237,9 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
     #            f"E_out={E_out}, E_in={E_in}, m={m}"
     #        )
 
+    y0 = eq_319(a_dom, theta_i, gamma, beta, E_out, E_in, m)
+
     if check_exists:
-        y0 = eq_319(a_dom, theta_i, gamma, beta, E_out, E_in, m)
 
         all_pos = y0 > 0.0
         all_neg = y0 < 0.0
@@ -270,9 +271,9 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         b = step
 
         fa = f_local_numba(a,theta0, a_dom, L,
-                     theta_i, gamma, beta, E_out, E_in, m)
+                           theta_i, gamma, beta, E_out, E_in, m)
         fb = f_local_numba(b,theta0, a_dom, L,
-                     theta_i, gamma, beta, E_out, E_in, m)
+                           theta_i, gamma, beta, E_out, E_in, m)
         
         if np.isfinite(fa) and np.isfinite(fb):
             if fa == 0.0:
@@ -285,6 +286,10 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         step *= expand_factor
 
         if step > 0.5 * L:
+
+            if y0 < 0 and fb > 0:
+                return theta0, False
+
             return 30000.0, True
         #raise ValueError(
         #f"Could not bracket root within half periodic domain: "
