@@ -512,7 +512,8 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         print("beta    =", beta_arr[n])
         print("E_out   =", Eout_arr[n])
         print("E_in    =", Ein_arr[n])
-        print("theta0  =", theta0_arr[n])    
+        print("theta0  =", theta0_arr[n])
+        print("Values  =", values[n])
     
     out[jj, kk, ii] = values
 
