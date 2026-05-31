@@ -219,15 +219,15 @@ if debug:
 plt.figure()
 Z = E_log_max[0,:,:].to_value(u.keV)
 mask = np.isfinite(Z) & (Z > 0)
-c = plt.pcolormesh(R_arr, epsilon_mean, Z,
-                   norm=LogNorm(
-                       vmin=Z[mask].min(),
-                       vmax=Z[mask].max()
-                   ),
-                   shading="auto")
+c_plot = plt.pcolormesh(R_arr, epsilon_mean, Z,
+                        norm=LogNorm(
+                            vmin=Z[mask].min(),
+                            vmax=Z[mask].max()
+                        ),
+                        shading="auto")
 plt.xlabel(r"R/R$_{LC}$")
 plt.ylabel(r"$\epsilon_{\gamma}$ (keV)")
-plt.colorbar(c, label=r"$E_{out}^{max}$ (keV)")
+plt.colorbar(c_plot, label=r"$E_{out}^{max}$ (keV)")
 plt.tight_layout()
 plt.savefig('Emax.png')
 if plt.isinteractive():
@@ -236,15 +236,15 @@ if plt.isinteractive():
 plt.clf()
 Z = E_log_min[0,:,:].to_value(u.keV)
 mask = np.isfinite(Z) & (Z > 0)
-c = plt.pcolormesh(R_arr, epsilon_mean, Z,
-                   norm=LogNorm(
-                       vmin=Z[mask].min(),
-                       vmax=Z[mask].max()
-                   ),
-                   shading="auto")
+c_plot = plt.pcolormesh(R_arr, epsilon_mean, Z,
+                        norm=LogNorm(
+                            vmin=Z[mask].min(),
+                            vmax=Z[mask].max()
+                        ),
+                        shading="auto")
 plt.xlabel(r"R/R$_{LC}$")
 plt.ylabel(r"$\epsilon_{\gamma}$ (keV)")
-plt.colorbar(c, label=r"$E_{out}^{min}$ (keV)")
+plt.colorbar(c_plot, label=r"$E_{out}^{min}$ (keV)")
 plt.tight_layout()
 plt.savefig('Emin.png')
 if plt.isinteractive():
