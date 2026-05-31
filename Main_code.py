@@ -43,7 +43,7 @@ Rf =  2    # Final radius up to which the positrons are getting accelerated (in 
 delta_R = 0.1  # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
-a_arr  = np.arcsin(1/R_arr)           # array angles obtained from the simplification for R>>RLC
+a_arr  = np.arcsin(1.0/R_arr)           # array angles obtained from the simplification for R>>RLC
 w_arr  = 1.-np.cos(a_arr)             # weights for the efficiency of the ICS 
 
 alpha = 1         # power-law evolution index of Gammas along the current sheet WE WANT TO VARY BETWEEN 0.5 and 10
@@ -217,8 +217,8 @@ if debug:
     
 
 plt.figure()
-Z = E_log_max[0,:,:]
-mask = Z > 0
+Z = E_log_max[0,:,:].to_value(u.keV)
+mask = np.isfinite(Z) & (Z > 0)
 c = plt.pcolormesh(R_arr, epsilon_mean, Z,
                    norm=LogNorm(
                        vmin=Z[mask].min(),
@@ -234,8 +234,8 @@ if plt.isinteractive():
     plt.show()
 
 plt.clf()
-Z = E_log_min[0,:,:]
-mask = Z > 0
+Z = E_log_min[0,:,:].to_value(u.keV)
+mask = np.isfinite(Z) & (Z > 0)
 c = plt.pcolormesh(R_arr, epsilon_mean, Z,
                    norm=LogNorm(
                        vmin=Z[mask].min(),
