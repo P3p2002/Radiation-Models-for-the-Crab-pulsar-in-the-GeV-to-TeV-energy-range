@@ -39,7 +39,7 @@ R0 =  0.9  # FIXME 0.9  # Initial radii from which the positrons start to accele
 RLI = 10   # Upper integracion limit
 Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
-delta_R = 0.1   # Step width for the integral (in units of RLC)
+delta_R = 0.05  # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 a_arr  = np.arcsin(1/R_arr)           # array angles obtained from the simplification for R>>RLC
@@ -106,93 +106,67 @@ if debug:
     print ('theta_arr: ', theta_arr,'\n')
     print ('theta_init:', theta_init)
 
-
 plt.figure()
-plt.plot(R_arr, theta_arr, label = r"$\theta_{L} (R)$")
-plt.ylabel(r"$\theta_{L}$ (rad)")
+plt.plot(R_arr, np.rad2deg(theta_arr), label = r"$\theta_{L} (R)$")
+plt.ylabel(r"$\theta_{L}$ (deg)")
 plt.xlabel(r"$R (R_{LC})$")
-#plt.xscale("log")
-#plt.yscale("log")
+plt.xscale("log")
+plt.yscale("log")
 plt.legend()
 plt.savefig('theta_L.png')
 if plt.isinteractive():
     plt.show()
 
 
+if debug:
+    ind1 = -1
+    angleplot = np.linspace(0, 2*np.pi, 2000)*u.rad
+    derfinal = derEfotof(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
+    Ef = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
     
-#I try to compute the exact maximum and minimum of the final energy
-def Efotof(Ein, Gamma_arr, beta_3d, thetaL, theta_mm, me):
-    # theta_mm is theta_L'   --> need Taylor expansion for theta_mm very small 
-    num = Ein*me*Gamma_arr*(1-beta_3d*np.cos(thetaL))
-    den = me*Gamma_arr*(1-beta_3d*np.cos(theta_mm)) + Ein*(1-np.cos(thetaL + theta_mm))
-    return num/den
+    '''   TESTS
+    gamma_test = Gamma_3d[13,0,0]
+    beta_test = beta_f(gamma_test, dps= None)
+    E_in_test = epsilon_mean_3d[13,0,0]
+    theta_test = theta_3d[13,0,0]
+    Eout_test = E_mean_3d[13,0,0]
+    Etest = Eout_test - Eout_from_Ein_theta_thetaL(E_in_test,gamma_test, beta_test, theta_test, angleplot ,m_keV)
+    plt.plot(angleplot, Etest)
+    plt.yscale("log")
+    
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+    plt.show()
+    
+    plt.plot(angleplot, derfinal)
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+    plt.show()
+    ''' 
 
-def derEfotof(Ein, Gamma_arr, beta_3d, theta, theta_L, me):
-    num = -(Gamma_arr*me*beta_3d*np.sin(theta_L) + (np.sin(theta + theta_L))*Ein)
-    num2 = Ein*me*Gamma_arr*(1-beta_3d*np.cos(theta))
-    den = (beta_3d*np.cos(theta_L)-1)*Gamma_arr*me + (np.cos(theta+theta_L) -1)*Ein
-    return num
-
-ind1 = -1
-
-angleplot = np.linspace(0, 2*np.pi, 2000)*u.rad
-derfinal = derEfotof(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
-Ef = Efotof(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
-
-'''   TESTS
-gamma_test = Gamma_3d[13,0,0]
-beta_test = beta_f(gamma_test, dps= None)
-E_in_test = epsilon_mean_3d[13,0,0]
-theta_test = theta_3d[13,0,0]
-Eout_test = E_mean_3d[13,0,0]
-Etest = Eout_test - Efotof(E_in_test,gamma_test, beta_test, theta_test, angleplot ,m_keV)
-plt.plot(angleplot, Etest)
-plt.yscale("log")
-
-ax = plt.gca()
-ax.yaxis.set_major_formatter(ScalarFormatter())
-ax.ticklabel_format(style='plain', axis='y', useOffset=False)
-plt.show()
-
-plt.plot(angleplot, derfinal)
-ax = plt.gca()
-ax.yaxis.set_major_formatter(ScalarFormatter())
-ax.ticklabel_format(style='plain', axis='y', useOffset=False)
-plt.show()
-''' 
+# !!! NOT CLEAR WHERE THIS FORMULA COMES FROM !!!
 theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
-#print ('HERERERE', theta_fs)
+if debug:
+    print ('theta_fs:', theta_fs)
 
-E_log_max = Efotof(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_fs, m_keV)
-E_log_min = Efotof(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
+E_log_max = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_fs, m_keV)
+E_log_min = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
 
-#Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
-E_log_max2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[-1]*(1-beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[-1]*(1-beta_3d[0]) + epsilon_mean_3d[0]*(1-np.cos(theta_3d[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
-E_log_min2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[0]*(1+beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[0]*(1+beta_3d[0]) + epsilon_mean_3d[0]*(1+np.cos(theta_3d[0])))#Energia minima que els fotons poden assolir, primera aproximacio
+#Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per tant no em canvia el resultat quina triï
+E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[0], theta_3d[0], 0.,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
+E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0], theta_3d[0], np.pi, m_keV)  # theta_Lbar is pi 
 
-print ('E_f,max: ',E_log_max,' E_f,min: ',E_log_min)
+#E_log_max2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[-1]*(1-beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[-1]*(1-beta_3d[0]) + epsilon_mean_3d[0]*(1-np.cos(theta_3d[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
+#E_log_min2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[0]*(1+beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[0]*(1+beta_3d[0]) + epsilon_mean_3d[0]*(1+np.cos(theta_3d[0])))#Energia minima que els fotons poden assolir, primera aproximacio
+
+if debug:
+    print ('E_f,max: ',E_log_max,' E_f,min: ',E_log_min)
 
 #A partir d'aqui comença un calcul numeric del valor de l'angle de dispersió dels fotons
-
-#theta_f_e = []
-#for j in range(len(E_mean)):
-#    print(j)
-#    auxiliar = []
-#    for k in range(len(epsilon_mean)):
-#        auxiliar2 = []
-#        for i in range(len(R)):
-#            if (E_log_max[k][i] > E_mean_3d[j][k][i] > E_log_min[k][i]):
-#                theta_fexacte1 = solver(theta_init[j][k][i],theta[j][k][i], Gamma_3d[j][k][i], beta_3d[j][k][i], E_mean_3d[j][k][i], epsilon_mean_3d[j][k][i])
-#                theta_fexacte2 = solver(theta_fexacte1,theta_3d[j][k][i], Gamma_3d[j][k][i], beta_3d[j][k][i], E_mean_3d[j][k][i], epsilon_mean_3d[j][k][i])                
-#                theta_fexacte3 = solver(theta_fexacte2,theta_3d[j][k][i], Gamma_3d[j][k][i], beta_3d[j][k][i], E_mean_3d[j][k][i], epsilon_mean_3d[j][k][i])                
-#                auxiliar2.append(float(theta_fexacte3))
-#            else:
-#                auxiliar2.append(10000)
-#        auxiliar.append(np.array(auxiliar2))
-#    theta_f_e.append(np.array(auxiliar))
-#theta_f_e = np.array(theta_f_e)*u.rad  #Obtinc un valor 
 
 if parallalize:
     theta_f_e = compute_theta_f_exact_parallel(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, n_jobs=n_jobs)
