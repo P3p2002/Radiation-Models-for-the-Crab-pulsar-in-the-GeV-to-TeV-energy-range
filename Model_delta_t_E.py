@@ -176,16 +176,42 @@ def beta_f(gamma, dps=None):
     """
     if np.isscalar(gamma):
         if dps is None:
-            return float(np.sqrt(1.0 - 1.0/gamma**2))
+            return np.float64(np.sqrt(1.0 - 1.0/gamma**2))
         with mp.workdps(dps):
             g = mp.mpf(gamma)
             return mp.sqrt(1 - 1/(g*g))
     else:
-        g = np.asarray(gamma, dtype=float)
+        g = np.asarray(gamma, dtype=np.float64)
         return np.sqrt(1.0 - 1.0/(g*g))   
 
-
 #Aquesta es la seccio eficaç que vam obtenir nosaltres
+
+    
+def Eout_from_Ein_theta_thetaL(epsilon, Gamma, beta, thetaL, theta_Lbar, m_e):
+'''
+   Calculate the scattered photon energy from incident energy and scattering angles (Eq. 3.20)
+
+   Energies and masses are supposed to be provided with astropy units 
+   Angles need to be provided in radians 
+   
+'''
+
+    # theta_Lbar is theta_L'   --> need Taylor expansion for theta_Lbar very small 
+    num = epsilon*m_e*Gamma * (1.0 - beta*np.cos(thetaL))
+    den = m_e * Gamma * (1.0 - beta*np.cos(theta_Lbar)) + epsilon * (1.0 - np.cos(thetaL + theta_Lbar))
+
+    return num/den
+
+def derEfotof(epsilon, Gamma, beta, theta, theta_L, m_e):
+    num = -(Gamma*m_e*beta*np.sin(theta_L) + (np.sin(theta + theta_L))*epsilon)
+    num2 = Ein*m_e*Gamma*(1-beta*np.cos(theta))
+    den = (beta*np.cos(theta_L)-1)*Gamma*m_e + (np.cos(theta+theta_L) -1)*epsilon
+    return num
+
+
+
+
+
 
 def display_sigfig(x, xerr, sigfigs=2) -> str:
     '''
