@@ -194,8 +194,8 @@ def f_local_numba(x, theta0, a_dom, L,
 def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                                  theta0,
                                  domain=(0.0, 2*np.pi),
-                                 step0=1e-8,
-                                 expand_factor=2.0,
+                                 step0=1e-12,
+                                 expand_factor=1.25,
                                  max_expand=100,
                                  method="brentq",
                                  xtol=1e-12,
@@ -282,14 +282,15 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                 return wrap_angle(theta0 + b, a_dom, L), False
             if fa * fb < 0.0:
                 break
-
+            if y0 < 0 and fa > 0 and fb > 0:
+                return theta0, False
+            if y0 > 0 and fa < 0 and fb < 0:
+                return theta0, False
+            
         step *= expand_factor
 
-        if step > 0.5 * L:
-
-            if y0 < 0 and fb > 0:
-                return theta0, False
-
+        if step > 0.51 * L:
+            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma)
             return 30000.0, True
         #raise ValueError(
         #f"Could not bracket root within half periodic domain: "
@@ -441,7 +442,7 @@ def _solve_one_flat(n, theta_i, gamma, beta, E_out, E_in, theta0, m_val):
 
 def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
                                    E_fotof_3d, E_fotoi_3d,E_fotof_min, E_fotof_max,
-                                   fill_value=100000.0,
+                                   fill_value=np.nan,
                                    n_jobs=-1):
 
     from joblib import Parallel, delayed
@@ -478,7 +479,6 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
     Ein_arr     = E_fotoi_val[jj, kk, ii]
     theta0_arr  = theta_init_val[jj, kk, ii]
     
-    n_jobs=8
     batch_size=500
     
     results = Parallel(
@@ -519,6 +519,9 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         print("E_in    =", Ein_arr[n])
         print("theta0  =", theta0_arr[n])
         print("Values  =", values[n])
+        #raise ValueError("Failed Points found")
+
+    values[values < 1000.] = fill_value # mask the few failed angles
     
     out[jj, kk, ii] = values
 
