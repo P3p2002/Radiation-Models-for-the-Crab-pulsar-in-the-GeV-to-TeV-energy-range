@@ -53,7 +53,7 @@ E0 = 1*Eunit      # pivot energy, 1 keV
 
 epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Energies for the pulse profiles
 
-log_epsilon_max = 8     # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
+log_epsilon_max = 7.5   # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_bins= 100   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
@@ -716,7 +716,7 @@ plt.plot(E_mean.to('MeV') , SED , label = "Theoretical SED")
 plt.plot(E_mean.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
 plt.plot(cr, cry, label ="Model of CR")
-plt.ylim((1e-8, 1e0))
+plt.ylim((1e-8, 1e-1))
 plt.xlim((1e1, 1e8))
 plt.xscale("log")
 plt.yscale("log")
