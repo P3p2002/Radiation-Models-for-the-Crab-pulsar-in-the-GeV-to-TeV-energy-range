@@ -84,25 +84,29 @@ def M(R, R0, Rf, gamma_w, alpha):
     #M_j[R>R_f]  = M_w 
     #return M_j
 
-def thetafunct(R, R0, Rf, RLC, gamma_w, Gamma, alpha):
+def theta_from_Gamma(R, R0, Rf, RLC, gamma_w, Gamma, beta, alpha):
 
     R = np.asarray(R)
     
     # Normalized ramp coordinate, clipped to [0, 1]
     x = np.clip((R - R0) / (Rf - R0), 0.0, 1.0)
 
-    # M = gamma_w * x**alpha * m / Omega
+    # M = gamma_w * x**alpha * m * c^2 / Omega
     # Gamma = (gamma_0 + (gamma_w - gamma_0) * x**alpha)
     # RLC = c*P/(2*np.pi)   # Radius of the light cylinder
     # theta = arcsin(M*c/(Gamma*m*R*RLC)    
 
-    arg = gamma_w * x**alpha / (Gamma * R)
-    #print ('arg of theta: ', arg)
+    arg1 = gamma_w * x**alpha / (Gamma * R)
+
+    arg2 = gamma_w * RLC / (Gamma * R)
+
+    mask_wrong = np.where(np.abs(arg1 - arg2)/arg1 > 1e-3)
+    print ('arg of theta: ', arg1[mask_wrong], arg2[mask_wrong], ' gamma_w=',gamma_w, ' RLC=',RLC,' R/RLC=',R[mask_wrong]/RLC)
     #print ('x: ', x)
     #print ('Gamma: ', Gamma)
     #print ('gamma_w: ', gamma_w)
     
-    return np.arcsin(arg)
+    return np.arcsin(arg2)
 
 def theta_init(beta, theta, E_fotoi, E_fotof):
     """
