@@ -108,8 +108,7 @@ if debug:
 
 
 plt.figure()
-plt.plot(R, theta_R, label = r"$\theta_{L} (R)$")
-
+plt.plot(R_arr, theta_arr, label = r"$\theta_{L} (R)$")
 plt.ylabel(r"$\theta_{L}$ (rad)")
 plt.xlabel(r"$R (R_{LC})$")
 #plt.xscale("log")
