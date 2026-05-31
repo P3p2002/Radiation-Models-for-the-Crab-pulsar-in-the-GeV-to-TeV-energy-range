@@ -474,7 +474,7 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
     n_jobs=8
     batch_size=500
     
-    values = Parallel(
+    results = Parallel(
         n_jobs=n_jobs,
         backend="loky",
         batch_size=batch_size,
@@ -512,7 +512,7 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         print("E_in    =", Ein_arr[n])
         print("theta0  =", theta0_arr[n])    
     
-    out[jj, kk, ii] = values    
+    out[jj, kk, ii] =results
 
     return out * u.rad
 
