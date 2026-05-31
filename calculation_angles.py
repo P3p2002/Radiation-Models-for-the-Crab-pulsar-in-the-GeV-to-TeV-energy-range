@@ -218,10 +218,10 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                        theta_i, gamma, beta, E_out, E_in, m)
 
     if not np.isfinite(f0):
-        return np.nan  #raise ValueError(f"Non-finite f0 at theta0={theta0}: {f0}")
+        return n, 50000.0, True  #raise ValueError(f"Non-finite f0 at theta0={theta0}: {f0}")
 
     if f0 == 0.0:
-        return theta0
+        return n, theta0, False
 
     #if check_exists:
     #    xs = np.linspace(a_dom, b_dom, ncheck, endpoint=False)
@@ -261,7 +261,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
             all_neg = all_neg and (y < 0.0)
 
         if all_pos or all_neg:
-            return np.nan
+            return n, 40000.0, True
 
     step = step0
 
@@ -276,22 +276,22 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         
         if np.isfinite(fa) and np.isfinite(fb):
             if fa == 0.0:
-                return wrap_angle(theta0 + a, a_dom, L)
+                return n, wrap_angle(theta0 + a, a_dom, L), False
             if fb == 0.0:
-                return wrap_angle(theta0 + b, a_dom, L)
+                return n, wrap_angle(theta0 + b, a_dom, L), False
             if fa * fb < 0.0:
                 break
 
         step *= expand_factor
 
         if step > 0.5 * L:
-            return np.nan 
+            return n, 30000.0, True
         #raise ValueError(
         #f"Could not bracket root within half periodic domain: "
         #        f"theta0={theta0}, step={step}, fa={fa}, fb={fb}"
         #    )
     else:   # The else clause executes after the loop completes normally. This means that the loop did not encounter a break statement.
-        return np.nan  # raise ValueError("Bracket search ended without sign change.")
+        return n, 20000.0, True  # raise ValueError("Bracket search ended without sign change.")
 
     #sol = root_scalar(
     #    f_local,
@@ -322,13 +322,13 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
     )
     
     if fleft == 0.0:
-        return wrap_angle(theta0 + left, a_dom, L)
+        return n, wrap_angle(theta0 + left, a_dom, L), False
     
     if fright == 0.0:
-        return wrap_angle(theta0 + right, a_dom, L)
+        return n, wrap_angle(theta0 + right, a_dom, L), False
     
     if fleft * fright > 0.0:
-        return np.nan
+        return n, 10000.0, True
 
     for _ in range(maxiter):
         mid = 0.5 * (left + right)
@@ -339,7 +339,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         )
         
         if fmid == 0.0 or abs(right - left) < xtol:
-            return wrap_angle(theta0 + mid, a_dom, L)
+            return n, wrap_angle(theta0 + mid, a_dom, L), False
         
     if fleft * fmid < 0.0:
         right = mid
@@ -348,7 +348,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         left = mid
         fleft = fmid
         
-    return wrap_angle(theta0 + 0.5 * (left + right), a_dom, L)
+    return n, wrap_angle(theta0 + 0.5 * (left + right), a_dom, L), False
 
 
 def solve_theta_f_quantity(theta_i, gamma, beta, E_out, E_in, theta0, **kw):
