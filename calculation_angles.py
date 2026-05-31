@@ -521,7 +521,7 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         print("Values  =", values[n])
         #raise ValueError("Failed Points found")
 
-    values[values < 1000.] = fill_value # mask the few failed angles
+    values[values > 1000.] = fill_value # mask the few failed angles
     
     out[jj, kk, ii] = values
 
