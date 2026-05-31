@@ -157,8 +157,8 @@ E_log_max = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta
 E_log_min = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
 
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per tant no em canvia el resultat quina triï
-E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[0], theta_3d[0], 0.,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
-E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0], theta_3d[0], np.pi, m_keV)  # theta_Lbar is pi 
+E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[0], theta_3d[0], 0.*u.rad,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
+E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0], theta_3d[0], np.pi*u.rad, m_keV)  # theta_Lbar is pi 
 
 #E_log_max2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[-1]*(1-beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[-1]*(1-beta_3d[0]) + epsilon_mean_3d[0]*(1-np.cos(theta_3d[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
 #E_log_min2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[0]*(1+beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[0]*(1+beta_3d[0]) + epsilon_mean_3d[0]*(1+np.cos(theta_3d[0])))#Energia minima que els fotons poden assolir, primera aproximacio
