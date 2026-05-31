@@ -290,7 +290,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         step *= expand_factor
 
         if step > 0.51 * L:
-            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma)
+            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma,' n=',n)
             return 30000.0, True
         #raise ValueError(
         #f"Could not bracket root within half periodic domain: "
@@ -430,6 +430,7 @@ def _solve_one_flat(n, theta_i, gamma, beta, E_out, E_in, theta0, m_val):
         E_in,
         m_val,
         theta0,
+        n,
         step0=1e-8,
         expand_factor=2.0,
         check_exists=True,
@@ -449,6 +450,8 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
 
     nJ, nK, nI = E_fotof_3d.shape
 
+    print ('nJ=', nJ, ' nK=', nK, ' nI=', nI)
+
     out = np.full((nJ, nK, nI), fill_value, dtype=np.float64)
 
     valid = (
@@ -458,6 +461,8 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
 
     idxs = np.argwhere(valid)
 
+    print('idxs: ',idxs)
+    
     # Convert units once for better performance
     theta_val = theta.to_value(u.rad)
     theta_init_val = theta_init.to_value(u.rad)
@@ -470,6 +475,10 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
     # This avoids repeated 3D indexing in the workers and makes the loop faster
     jj, kk, ii = np.where(valid)
 
+    print('jj: ',jj, ' length: ', len(jj))
+    print('kk: ',kk, ' length: ', len(kk))
+    print('ii: ',ii, ' length: ', len(ii))
+    
     values = np.full(len(jj), fill_value, dtype=np.float64)
     
     theta_i_arr = theta_val[jj, kk, ii]
@@ -519,6 +528,17 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         print("E_in    =", Ein_arr[n])
         print("theta0  =", theta0_arr[n])
         print("Values  =", values[n])
+        print("\nLast failed point:")
+        n = failed[-1]        
+        print("j,k,i =", jj[n], kk[n], ii[n])
+        print("theta_i =", theta_i_arr[n])
+        print("gamma   =", gamma_arr[n])
+        print("beta    =", beta_arr[n])
+        print("E_out   =", Eout_arr[n])
+        print("E_in    =", Ein_arr[n])
+        print("theta0  =", theta0_arr[n])
+        print("Values  =", values[n])
+
         #raise ValueError("Failed Points found")
 
     values[values > 1000.] = fill_value # mask the few failed angles
