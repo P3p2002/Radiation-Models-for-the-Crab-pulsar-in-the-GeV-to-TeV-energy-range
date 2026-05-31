@@ -27,6 +27,7 @@ import os
 
 SetUp()
 
+debug = False
 parallalize = True
 n_jobs = 10
 
@@ -74,43 +75,36 @@ Delta_E_log = np.log((E_arr[1:])/E0) - np.log((E_arr[:-1])/E0) # Spacing of natu
 epsilon_mean_3d = add_dim_e_fi(E_mean, epsilon_mean, R_arr)   # Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 E_mean_3d       = add_dim_e_ff(E_mean, epsilon_mean, R_arr)   # Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-Gamma_arr   = gammaw(R_arr, R0, Rf, gamma_0, gamma_w, alpha)  # array of gamma factors for each distance, following the wind model
+Gamma_arr = gammaw(R_arr, R0, Rf, gamma_0, gamma_w, alpha)  # array of gamma factors for each distance, following the wind model
+M_arr     = M(R_arr, R0, Rf, gamma_w, alpha)                # array of angular moments que s'emporten els electrons
+Gamma_2d  = add_dimension_R(Gamma_arr, epsilon_mean)        # New array dimension: len(Gamma_arr), len(epsilon_mean)
+Gamma_3d  = add_dimension_R(Gamma_2d, E_mean)               # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
+beta_3d   = beta_f(Gamma_3d, dps=None)                      # Valor de la beta dels positrons en 3 dimensions
+beta_arr  = beta_f(Gamma_arr, dps=None)                     # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
 
-#print ('R: ', R,'\n')
-#print ('Gamma_arr: ', Gamma_arr,'\n')
-
-M_arr   = M(R_arr, R0, Rf, gamma_w, alpha)                    # array of angular moments que s'emporten els electrons
-
-#print ('M: ', M_arr,'\n')
-
-Gamma_2d = add_dimension_R(Gamma_arr, epsilon_mean)           # New array dimension: len(Gamma_arr), len(epsilon_mean)
-
-#print ('Gamma_2d: ', Gamma_2d,'\n')
-
-Gamma_3d = add_dimension_R(Gamma_2d, E_mean)                  # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
-
-#print ('Gamma_3d: ', Gamma_3d,'\n')
-
-beta_3d = beta_f(Gamma_3d, dps=None)                          # Valor de la beta dels positrons en 3 dimensions
-
-#print ('beta_3d: ', beta_3d,'\n')
-  
-beta_arr = beta_f(Gamma_arr, dps=None)                        # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
+if debug: 
+    print ('R: ', R,'\n')
+    print ('Gamma_arr: ', Gamma_arr,'\n')
+    print ('M: ', M_arr,'\n')
+    print ('Gamma_2d: ', Gamma_2d,'\n')
+    print ('Gamma_3d: ', Gamma_3d,'\n')
+    print ('beta_3d: ', beta_3d,'\n')
+    print ('beta_arr: ', beta_arr,'\n')
 
 #theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
 #print ('theta_1d: ', theta_1d,'\n')
-theta_arr = thetafunct(R_arr,R0,Rf,RLC,gamma_w,Gamma_arr,alpha)*u.rad
-#print ('theta_1d: ', theta_arr,'\n')
 
-theta_2d = add_dimension_R(theta_arr, epsilon_mean)  # New array dimension: len(Gamma_arr), len(epsilon_mean)
-
-theta_3d = add_dimension_R(theta_2d, E_mean)         # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
+theta_arr = theta_from_Gamma(R_arr,R0,Rf,RLC,gamma_w,Gamma_arr,beta_arr, alpha)*u.rad  # Array of collision angles, Eq. 2.5
+theta_2d  = add_dimension_R(theta_arr, epsilon_mean)       # New array dimension: len(Gamma_arr), len(epsilon_mean)
+theta_3d  = add_dimension_R(theta_2d, E_mean)              # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
 
 theta_3d = theta_3d*u.rad                            # Array en 3 dimensions i amb unitats, THIS IS THE theta_L in the paper! 
 
 theta_init = theta_init(beta_3d, theta_3d, epsilon_mean_3d, E_mean_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
-print ('theta_init:', theta_init)
+if debug:
+    print ('theta_arr: ', theta_arr,'\n')
+    print ('theta_init:', theta_init)
 
 #I try to compute the exact maximum and minimum of the final energy
 def Efotof(Ein, Gamma_arr, beta_3d, thetaL, theta_mm, me):
@@ -155,7 +149,7 @@ plt.show()
 theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
-print ('HERERERE', theta_fs)
+#print ('HERERERE', theta_fs)
 
 E_log_max = Efotof(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_fs, m_keV)
 E_log_min = Efotof(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
@@ -640,7 +634,7 @@ plt.plot(E_mean.to('MeV') , SED , label = "Theoretical SED")
 plt.plot(E_mean.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
 plt.plot(cr, cry, label ="Model of CR")
-plt.ylim((1e-8, 1e5))
+plt.ylim((1e-8, 1e0))
 plt.xlim((1e1, 1e8))
 plt.xscale("log")
 plt.yscale("log")
