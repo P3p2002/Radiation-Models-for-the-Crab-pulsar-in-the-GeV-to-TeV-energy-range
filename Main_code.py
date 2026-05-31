@@ -41,7 +41,7 @@ Rf =  2    # Final radius up to which the positrons are getting accelerated (in 
 
 delta_R = 0.1   # Step width for the integral (in units of RLC)
 
-R_arr  = np.arange(1., RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
+R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 a_arr  = np.arcsin(1/R_arr)           # array angles obtained from the simplification for R>>RLC
 w_arr  = 1.-np.cos(a_arr)             # weights for the efficiency of the ICS 
 
@@ -79,8 +79,8 @@ Gamma_arr = gammaw(R_arr, R0, Rf, gamma_0, gamma_w, alpha)  # array of gamma fac
 M_arr     = M(R_arr, R0, Rf, gamma_w, alpha)                # array of angular moments que s'emporten els electrons
 Gamma_2d  = add_dimension_R(Gamma_arr, epsilon_mean)        # New array dimension: len(Gamma_arr), len(epsilon_mean)
 Gamma_3d  = add_dimension_R(Gamma_2d, E_mean)               # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
-beta_3d   = beta_f(Gamma_3d, dps=None)                      # Valor de la beta dels positrons en 3 dimensions
-beta_arr  = beta_f(Gamma_arr, dps=None)                     # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
+beta_3d   = beta_f(Gamma_3d, dps=None)                      # Value of beta of the positrons in 3 dimensions
+beta_arr  = beta_f(Gamma_arr, dps=None)                     # Value of beta of the positrons in 1 dimension (R)
 
 if debug: 
     print ('R: ', R,'\n')
@@ -94,11 +94,11 @@ if debug:
 #theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
 #print ('theta_1d: ', theta_1d,'\n')
 
-theta_arr = theta_from_Gamma(R_arr,R0,Rf,RLC,gamma_w,Gamma_arr,beta_arr, alpha)*u.rad  # Array of collision angles, Eq. 2.5
+theta_arr = theta_from_R(R_arr,R0,Rf,RLC,gamma_w,Gamma_arr,beta_arr, alpha)*u.rad  # Array of collision angles, Eq. 2.5
 theta_2d  = add_dimension_R(theta_arr, epsilon_mean)       # New array dimension: len(Gamma_arr), len(epsilon_mean)
 theta_3d  = add_dimension_R(theta_2d, E_mean)              # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
 
-theta_3d = theta_3d*u.rad                            # Array en 3 dimensions i amb unitats, THIS IS THE theta_L in the paper! 
+theta_3d = theta_3d*u.rad                                  # Array in 3 dimensions and units, THIS IS THE theta_L in the paper! 
 
 theta_init = theta_init(beta_3d, theta_3d, epsilon_mean_3d, E_mean_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
@@ -106,6 +106,21 @@ if debug:
     print ('theta_arr: ', theta_arr,'\n')
     print ('theta_init:', theta_init)
 
+
+plt.figure()
+plt.plot(R, theta_R, label = r"$\theta_{L} (R)$")
+
+plt.ylabel(r"$\theta_{L}$ (rad)")
+plt.xlabel(r"$R (R_{LC})$")
+#plt.xscale("log")
+#plt.yscale("log")
+plt.legend()
+plt.savefig('theta_L.png')
+if plt.isinteractive():
+    plt.show()
+
+
+    
 #I try to compute the exact maximum and minimum of the final energy
 def Efotof(Ein, Gamma_arr, beta_3d, thetaL, theta_mm, me):
     # theta_mm is theta_L'   --> need Taylor expansion for theta_mm very small 
