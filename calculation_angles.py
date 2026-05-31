@@ -436,14 +436,14 @@ def _solve_one_flat(n, theta_i, gamma, beta, E_out, E_in, theta0, m_val):
 
 def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
                                    E_fotof_3d, E_fotoi_3d,E_fotof_min, E_fotof_max,
-                                   fill_value=10000.0,
+                                   fill_value=100000.0,
                                    n_jobs=-1):
 
     from joblib import Parallel, delayed
 
     nJ, nK, nI = E_fotof_3d.shape
 
-    out = np.full((nJ, nK, nI), fill_value, dtype=float)
+    out = np.full((nJ, nK, nI), fill_value, dtype=np.float64)
 
     valid = (
         (E_fotof_3d >= E_fotof_min)
@@ -464,6 +464,8 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
     # This avoids repeated 3D indexing in the workers and makes the loop faster
     jj, kk, ii = np.where(valid)
 
+    values = np.full(len(jj), fill_value, dtype=np.float64)
+    
     theta_i_arr = theta_val[jj, kk, ii]
     gamma_arr   = Gamma_3d[jj, kk, ii]
     beta_arr    = beta[jj, kk, ii]
@@ -512,7 +514,7 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         print("E_in    =", Ein_arr[n])
         print("theta0  =", theta0_arr[n])    
     
-    out[jj, kk, ii] =results
+    out[jj, kk, ii] = values
 
     return out * u.rad
 
