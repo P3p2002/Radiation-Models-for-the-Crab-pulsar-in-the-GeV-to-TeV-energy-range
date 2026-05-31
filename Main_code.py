@@ -21,6 +21,7 @@ from Spectrum import *
 import astropy.units as u
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+from matplotlib.colors import LogNorm
 import pandas as pd
 import scienceplots
 import os
@@ -39,7 +40,7 @@ R0 =  0.9  # FIXME 0.9  # Initial radii from which the positrons start to accele
 RLI = 10   # Upper integracion limit
 Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
-delta_R = 0.05  # Step width for the integral (in units of RLC)
+delta_R = 0.1  # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 a_arr  = np.arcsin(1/R_arr)           # array angles obtained from the simplification for R>>RLC
@@ -77,8 +78,8 @@ E_mean_3d       = add_dim_e_ff(E_mean, epsilon_mean, R_arr)   # Energia final de
 
 Gamma_arr = gammaw(R_arr, R0, Rf, gamma_0, gamma_w, alpha)  # array of gamma factors for each distance, following the wind model
 M_arr     = M(R_arr, R0, Rf, gamma_w, alpha)                # array of angular moments que s'emporten els electrons
-Gamma_2d  = add_dimension_R(Gamma_arr, epsilon_mean)        # New array dimension: len(Gamma_arr), len(epsilon_mean)
-Gamma_3d  = add_dimension_R(Gamma_2d, E_mean)               # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
+Gamma_2d  = add_dimension_R(Gamma_arr, epsilon_mean)        # New array dimension: len(epsilon_mean), len(Gamma_arr)
+Gamma_3d  = add_dimension_R(Gamma_2d, E_mean)               # New array dimension: len(E_mean), len(epsilon_mean), len(Gamma_arr)
 beta_3d   = beta_f(Gamma_3d, dps=None)                      # Value of beta of the positrons in 3 dimensions
 beta_arr  = beta_f(Gamma_arr, dps=None)                     # Value of beta of the positrons in 1 dimension (R)
 
@@ -156,9 +157,102 @@ if debug:
 E_log_max = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_fs, m_keV)
 E_log_min = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
 
+if debug:
+
+    test_idx = 0
+    
+    nJ, nK, nI = Gamma_3d.shape
+    print(f"Gamma shape #E_gamma: {nJ}, #epsilons: {nK}, #Rs {nI}")
+    print ('Gamma for Rs (test_idx=0): ',Gamma_3d[test_idx,test_idx,:])
+    print ('Gamma for epsilons (test_idx=0): ',Gamma_3d[test_idx,:,test_idx])
+    print ('Gamma for E_gammas (test_idx=0): ',Gamma_3d[:,test_idx,test_idx],'\n')
+
+    test_idx = -1
+    
+    print ('Gamma for Rs (test_idx=-1): ',Gamma_3d[test_idx,test_idx,:])
+    print ('Gamma for epsilons (test_idx=-1): ',Gamma_3d[test_idx,:,test_idx])
+    print ('Gamma for E_gammas (test_idx=-1): ',Gamma_3d[:,test_idx,test_idx],'\n')
+
+    test_idx = 0
+    
+    nJ, nK, nI = epsilon_mean_3d.shape
+    print(f"epsilon_mean shape #E_gamma: {nJ}, #epsilons: {nK}, #Rs {nI}")
+    print ('epsilon_mean for Rs (test_idx=0): ',epsilon_mean_3d[test_idx,test_idx,:])
+    print ('epsilon_mean for epsilons (test_idx=0): ',epsilon_mean_3d[test_idx,:,test_idx])
+    print ('epsilon_mean for E_gammas (test_idx=0): ',epsilon_mean_3d[:,test_idx,test_idx],'\n')
+
+    test_idx = -1
+    
+    print ('epsilon_mean for Rs (test_idx=-1): ',epsilon_mean_3d[test_idx,test_idx,:])
+    print ('epsilon_mean for epsilons (test_idx=-1): ',epsilon_mean_3d[test_idx,:,test_idx])
+    print ('epsilon_mean for E_gammas (test_idx=-1): ',epsilon_mean_3d[:,test_idx,test_idx],'\n')
+
+    test_idx = 0
+    
+    nJ, nK, nI = E_log_max.shape
+    print(f"E_log_max shape #E_gamma: {nJ}, #epsilons: {nK}, #Rs {nI}")
+    print ('E_log_max for Rs (test_idx=0): ',E_log_max[test_idx,test_idx,:])
+    print ('E_log_max for epsilons (test_idx=0): ',E_log_max[test_idx,:,test_idx])
+    print ('E_log_max for E_gammas (test_idx=0): ',E_log_max[:,test_idx,test_idx],'\n')
+
+    test_idx = -1
+    
+    print ('E_log_max for Rs (test_idx=-1): ',E_log_max[test_idx,test_idx,:])
+    print ('E_log_max for epsilons (test_idx=-1): ',E_log_max[test_idx,:,test_idx])
+    print ('E_log_max for E_gammas (test_idx=-1): ',E_log_max[:,test_idx,test_idx],'\n')
+
+    test_idx = 0
+    
+    nJ, nK, nI = E_log_min.shape
+    print(f"E_log_min shape #E_gamma: {nJ}, #epsilons: {nK}, #Rs {nI}")
+    print ('E_log_min for Rs (test_idx=0): ',E_log_min[test_idx,test_idx,:])
+    print ('E_log_min for epsilons (test_idx=0): ',E_log_min[test_idx,:,test_idx])
+    print ('E_log_min for E_gammas (test_idx=0): ',E_log_min[:,test_idx,test_idx],'\n')
+
+    test_idx = -1
+    
+    print ('E_log_min for Rs (test_idx=-1): ',E_log_min[test_idx,test_idx,:])
+    print ('E_log_min for epsilons (test_idx=-1): ',E_log_min[test_idx,:,test_idx])
+    print ('E_log_min for E_gammas (test_idx=-1): ',E_log_min[:,test_idx,test_idx],'\n')
+    
+
+plt.figure()
+Z = E_log_max[0,:,:]
+mask = Z > 0
+c = plt.pcolormesh(R_arr, epsilon_mean, Z,
+                   norm=LogNorm(
+                       vmin=Z[mask].min(),
+                       vmax=Z[mask].max()
+                   ),
+                   shading="auto")
+plt.xlabel(r"R/R$_{LC}$")
+plt.ylabel(r"$\epsilon_{\gamma}$ (keV)")
+plt.colorbar(c, label=r"$E_{out}^{max}$ (keV)")
+plt.tight_layout()
+plt.savefig('Emax.png')
+if plt.isinteractive():
+    plt.show()
+
+plt.clf()
+Z = E_log_min[0,:,:]
+mask = Z > 0
+c = plt.pcolormesh(R_arr, epsilon_mean, Z,
+                   norm=LogNorm(
+                       vmin=Z[mask].min(),
+                       vmax=Z[mask].max()
+                   ),
+                   shading="auto")
+plt.xlabel(r"R/R$_{LC}$")
+plt.ylabel(r"$\epsilon_{\gamma}$ (keV)")
+plt.colorbar(c, label=r"$E_{out}^{min}$ (keV)")
+plt.tight_layout()
+plt.savefig('Emin.png')
+if plt.isinteractive():
+    plt.show()
+
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per tant no em canvia el resultat quina triï
-E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[0], theta_3d[0], 0.*u.rad,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
-E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0], theta_3d[0], np.pi*u.rad, m_keV)  # theta_Lbar is pi 
+E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[-1], theta_3d[0], 0.*u.rad,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
+E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0],  theta_3d[0], np.pi*u.rad, m_keV)  # theta_Lbar is pi 
 
 #E_log_max2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[-1]*(1-beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[-1]*(1-beta_3d[0]) + epsilon_mean_3d[0]*(1-np.cos(theta_3d[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
 #E_log_min2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[0]*(1+beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[0]*(1+beta_3d[0]) + epsilon_mean_3d[0]*(1+np.cos(theta_3d[0])))#Energia minima que els fotons poden assolir, primera aproximacio
