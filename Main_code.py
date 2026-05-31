@@ -53,18 +53,18 @@ epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Ener
 
 log_epsilon_max = 8     # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_bins= 15   # 100  # was 30 number of logarithmically-space bins of epsilon
+log_epsilon_bins= 50   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
 epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon = epsilon_arr[1:] - epsilon_arr[:-1]       # Energy spacing of the incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0) # Spacing of natural logarithm of incident photon energies
 
-log_steps = 30 # Number of final photon energies 
+log_steps = 100 # Number of final photon energies 
 
 log_E_min   = 6   # 10^6 keV --> 1 GeV
 log_E_max   = 11  # 10^11 keV --> 100 TeV
-log_E_bins  = 30
+log_E_bins  = 100
 E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
 E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
@@ -640,7 +640,7 @@ plt.plot(E_mean.to('MeV') , SED , label = "Theoretical SED")
 plt.plot(E_mean.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
 plt.plot(cr, cry, label ="Model of CR")
-plt.ylim((1e-8, 1e-1))
+plt.ylim((1e-8, 1e1))
 plt.xlim((1e1, 1e8))
 plt.xscale("log")
 plt.yscale("log")
