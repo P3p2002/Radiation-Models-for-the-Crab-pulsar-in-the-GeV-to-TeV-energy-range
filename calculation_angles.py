@@ -290,7 +290,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         step *= expand_factor
 
         if step > 0.51 * L:
-            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma,' n=',n)
+            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma,' E_in=',E_in, ' E_out=',E_out)
             return 30000.0, True
         #raise ValueError(
         #f"Could not bracket root within half periodic domain: "
@@ -430,7 +430,6 @@ def _solve_one_flat(n, theta_i, gamma, beta, E_out, E_in, theta0, m_val):
         E_in,
         m_val,
         theta0,
-        n,
         step0=1e-8,
         expand_factor=2.0,
         check_exists=True,
