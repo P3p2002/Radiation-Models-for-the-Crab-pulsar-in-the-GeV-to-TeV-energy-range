@@ -98,9 +98,9 @@ def theta_from_Gamma(R, R0, Rf, RLC, gamma_w, Gamma, beta, alpha):
 
     arg1 = gamma_w * x**alpha / (Gamma * R)
 
-    arg2 = gamma_w * RLC / (Gamma * R)
+    arg2 = gamma_w * x**alpha / (beta*Gamma * R)
 
-    mask_wrong = np.where(np.abs(arg1 - arg2)/arg1 > 1e-3)
+    mask_wrong = np.where(np.abs(arg1 - arg2)/arg1 > 1e-6)
     print ('arg of theta: ', arg1[mask_wrong], arg2[mask_wrong], ' gamma_w=',gamma_w, ' RLC=',RLC,' R/RLC=',R[mask_wrong]/RLC)
     #print ('x: ', x)
     #print ('Gamma: ', Gamma)
