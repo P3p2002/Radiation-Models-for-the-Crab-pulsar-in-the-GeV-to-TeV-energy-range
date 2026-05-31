@@ -11,9 +11,9 @@ def SetUp():
         "savefig.dpi": 300,
         
         "font.size": 11,
-        "axes.labelsize": 13,
-        "axes.titlesize": 13,
-        "legend.fontsize": 9,
+        "axes.labelsize": 15,
+        "axes.titlesize": 15,
+        "legend.fontsize": 15,
         
         "axes.linewidth": 1.0,
         "xtick.direction": "in",
