@@ -84,7 +84,7 @@ def M(R, R0, Rf, gamma_w, alpha):
     #M_j[R>R_f]  = M_w 
     #return M_j
 
-def theta_from_Gamma(R, R0, Rf, RLC, gamma_w, Gamma, beta, alpha):
+def theta_from_R(R, R0, Rf, RLC, gamma_w, Gamma, beta, alpha):
 
     R = np.asarray(R)
     
