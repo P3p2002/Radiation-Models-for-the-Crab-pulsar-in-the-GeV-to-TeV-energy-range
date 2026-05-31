@@ -188,13 +188,13 @@ def beta_f(gamma, dps=None):
 
     
 def Eout_from_Ein_theta_thetaL(epsilon, Gamma, beta, thetaL, theta_Lbar, m_e):
-'''
-   Calculate the scattered photon energy from incident energy and scattering angles (Eq. 3.20)
-
-   Energies and masses are supposed to be provided with astropy units 
-   Angles need to be provided in radians 
-   
-'''
+    '''
+    Calculate the scattered photon energy from incident energy and scattering angles (Eq. 3.20)
+    
+    Energies and masses are supposed to be provided with astropy units 
+    Angles need to be provided in radians 
+    
+    '''
 
     # theta_Lbar is theta_L'   --> need Taylor expansion for theta_Lbar very small 
     num = epsilon*m_e*Gamma * (1.0 - beta*np.cos(thetaL))
