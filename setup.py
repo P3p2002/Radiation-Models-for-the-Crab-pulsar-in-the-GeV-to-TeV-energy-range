@@ -5,23 +5,47 @@ import seaborn as sbn
 
 def SetUp():
 
+    plt.rcParams.update({
+        "figure.figsize": (7.0, 5.0),
+        "figure.dpi": 150,
+        "savefig.dpi": 300,
+        
+        "font.size": 11,
+        "axes.labelsize": 13,
+        "axes.titlesize": 13,
+        "legend.fontsize": 9,
+        
+        "axes.linewidth": 1.0,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "xtick.top": True,
+        "ytick.right": True,
+        "xtick.minor.visible": True,
+        "ytick.minor.visible": True,
+        
+        "lines.linewidth": 1.5,
+        "lines.markersize": 4,
+        
+        "legend.frameon": False,
+    })
+    
     # plt.style.use(["science","no-latex"])  # OSError: 'science' is not a valid package style, path of style file, URL of style file, or library style name (library styles are listed in `style.available`)
-    plt.rcParams["figure.figsize"] = (7,7)
-    plt.rcParams['xtick.top'] = False
-    plt.rcParams['ytick.right'] = False
-    plt.rc('xtick', labelsize=20) 
-    plt.rc('ytick', labelsize=20) 
-    plt.rcParams['xtick.major.size'] = 10
-    plt.rcParams['ytick.major.size'] = 10
-    plt.rcParams['xtick.minor.size'] = 5
-    plt.rcParams['ytick.minor.size'] = 5
-    plt.rcParams['font.size'] = 23       
-    plt.rcParams['mathtext.fontset'] = 'custom'
-    plt.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
-    plt.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
-    plt.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
-    plt.rcParams['mathtext.fontset'] = 'stix'
-    plt.rcParams['font.family'] = 'STIXGeneral'
+    #plt.rcParams["figure.figsize"] = (7,5)
+    #plt.rcParams['xtick.top'] = False
+    #plt.rcParams['ytick.right'] = False
+    #plt.rc('xtick', labelsize=20) 
+    #plt.rc('ytick', labelsize=20) 
+    #plt.rcParams['xtick.major.size'] = 10
+    #plt.rcParams['ytick.major.size'] = 10
+    #plt.rcParams['xtick.minor.size'] = 5
+    #plt.rcParams['ytick.minor.size'] = 5
+    #plt.rcParams['font.size'] = 23       
+    #plt.rcParams['mathtext.fontset'] = 'custom'
+    #plt.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
+    #plt.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
+    #plt.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
+    #plt.rcParams['mathtext.fontset'] = 'stix'
+    #plt.rcParams['font.family'] = 'STIXGeneral'
 
     # matplotlib stuff
     size=25
@@ -32,10 +56,10 @@ def SetUp():
               'xtick.labelsize': size,
               'ytick.labelsize': size,
               'axes.titlepad': 25}
-    plt.rcParams.update(params)
+    #plt.rcParams.update(params)
 
     # setup from WS
-    sbn.set(rc={'figure.figsize':(10, 5)})
+    #sbn.set(rc={'figure.figsize':(10, 5)})
 
     # enlarge the color cycler
     colors = list(plt.cm.tab10(range(10)))
