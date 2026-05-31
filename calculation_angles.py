@@ -201,7 +201,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                                  xtol=1e-12,
                                  rtol=1e-12,
                                  maxiter=200,
-                                 check_exists=False,
+                                 check_exists=True,
                                  ncheck=512):
     """
     Faster bracketed theta_f solver.
@@ -218,7 +218,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                        theta_i, gamma, beta, E_out, E_in, m)
 
     if not np.isfinite(f0):
-        raise ValueError(f"Non-finite f0 at theta0={theta0}: {f0}")
+        return np.nan  #raise ValueError(f"Non-finite f0 at theta0={theta0}: {f0}")
 
     if f0 == 0.0:
         return theta0
@@ -250,7 +250,7 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
 
         for q in range(1, ncheck):
             x = a_dom + q * dx
-            y = eq_319_numba(x, theta_i, gamma, beta, E_out, E_in, m)
+            y = eq_319(x, theta_i, gamma, beta, E_out, E_in, m)
             
             if y < ymin:
                 ymin = y
@@ -285,12 +285,13 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
         step *= expand_factor
 
         if step > 0.5 * L:
-            raise ValueError(
-                f"Could not bracket root within half periodic domain: "
-                f"theta0={theta0}, step={step}, fa={fa}, fb={fb}"
-            )
+            return np.nan 
+        #raise ValueError(
+        #f"Could not bracket root within half periodic domain: "
+        #        f"theta0={theta0}, step={step}, fa={fa}, fb={fb}"
+        #    )
     else:   # The else clause executes after the loop completes normally. This means that the loop did not encounter a break statement.
-        raise ValueError("Bracket search ended without sign change.")
+        return np.nan  # raise ValueError("Bracket search ended without sign change.")
 
     #sol = root_scalar(
     #    f_local,
@@ -414,8 +415,8 @@ def compute_theta_f_exact(theta_init, theta, Gamma_3d, beta,
     return out * u.rad
 
 @njit
-def _solve_one_flat(theta_i, gamma, beta, E_out, E_in, theta0, m_val):
-    return solve_theta_f_bracketed_fast(
+def _solve_one_flat(n, theta_i, gamma, beta, E_out, E_in, theta0, m_val):
+    val = solve_theta_f_bracketed_fast(
         theta_i,
         gamma,
         beta,
@@ -427,6 +428,11 @@ def _solve_one_flat(theta_i, gamma, beta, E_out, E_in, theta0, m_val):
         expand_factor=2.0,
         check_exists=False,
     )
+
+    if np.isnan(val):
+        return n, 10000.0, True
+    
+    return val
 
 def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
                                    E_fotof_3d, E_fotoi_3d,E_fotof_min, E_fotof_max,
@@ -474,6 +480,7 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         batch_size=batch_size,
     )(
         delayed(_solve_one_flat)(
+            n,
             theta_i_arr[n],
             gamma_arr[n],
             beta_arr[n],
@@ -485,6 +492,26 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
         for n in range(len(jj))
     )
 
+    failed = []
+    
+    for n, val, bad in results:
+        values[n] = val
+        if bad:
+            failed.append(n)
+
+    print("Number of failed points:", len(failed))
+
+    if failed:
+        n = failed[0]
+        print("First failed point:")
+        print("j,k,i =", jj[n], kk[n], ii[n])
+        print("theta_i =", theta_i_arr[n])
+        print("gamma   =", gamma_arr[n])
+        print("beta    =", beta_arr[n])
+        print("E_out   =", Eout_arr[n])
+        print("E_in    =", Ein_arr[n])
+        print("theta0  =", theta0_arr[n])    
+    
     out[jj, kk, ii] = values    
 
     return out * u.rad
