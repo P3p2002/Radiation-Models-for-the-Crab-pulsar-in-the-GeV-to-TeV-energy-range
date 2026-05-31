@@ -30,7 +30,7 @@ SetUp()
 parallalize = True
 n_jobs = 10
 
-mp.dps =  50  # number of digits for internal calculation
+mp.mp.dps =  50  # number of digits for internal calculation
 
 Eunit = u.keV     # energy unit to which the results are getting referred to
 
@@ -328,6 +328,7 @@ spectra = np.broadcast_to(
 ### As this does not have the  right units (which should be MeV/(cm^2 s))
 ### we expect the final result, i.e., the second integral to have the same units
 
+plt.clf()
 plt.plot(epsilon_mean, spec_1d, '.', label = "Original fit")
 plt.plot(epsilon_mean, spec1d2, '.', label = "Polynomial fit")
 plt.plot(Interval_x, Interval_y, '.', label = "Data")
@@ -634,6 +635,7 @@ SED = (spec*E_mean**2).to('MeV')
 
 
 #Plotejo la SED
+plt.clf()
 plt.plot(E_mean.to('MeV') , SED , label = "Theoretical SED")
 plt.plot(E_mean.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
