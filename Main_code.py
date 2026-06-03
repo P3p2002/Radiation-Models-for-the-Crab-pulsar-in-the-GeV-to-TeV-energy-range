@@ -147,9 +147,8 @@ if debug:
     plt.show()
     ''' 
 
-# !!! NOT CLEAR WHERE THIS FORMULA COMES FROM !!!
-###This are just the analytical solutions for the theta
-##such that the final energy is max or min
+
+# Solutions of Eq. 3.22
 theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
