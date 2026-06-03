@@ -30,17 +30,17 @@ SetUp()
 
 debug = False
 parallalize = True
-n_jobs = 10
+n_jobs = 40
 
 mp.mp.dps =  50  # number of digits for internal calculation
 
 Eunit = u.keV     # energy unit to which the results are getting referred to
 
-R0 =  0.9  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
+R0 =  1.0  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
 RLI = 10   # Upper integracion limit
 Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
-delta_R = 0.1  # Step width for the integral (in units of RLC)
+delta_R = 0.005 # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 a_arr  = np.arcsin(1.0/R_arr)           # array angles obtained from the simplification for R>>RLC
