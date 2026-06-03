@@ -108,7 +108,7 @@ def theta_from_R(R, R0, Rf, RLC, gamma_w, Gamma, beta, alpha):
     
     return np.arcsin(arg2)
 
-def theta_init(beta, theta, E_fotoi, E_fotof):
+def theta_init_funct(beta, theta, E_fotoi, E_fotof):
     """
     An approximation of Eq. 3.19, assuming that epsilon-->0, 
     used for initialization only

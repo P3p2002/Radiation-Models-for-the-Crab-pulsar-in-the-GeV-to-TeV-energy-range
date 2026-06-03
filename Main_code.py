@@ -43,8 +43,8 @@ Rf =  2    # Final radius up to which the positrons are getting accelerated (in 
 delta_R = 0.005 # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
-a_arr  = np.arcsin(1.0/R_arr)           # array angles obtained from the simplification for R>>RLC
-w_arr  = 1.-np.cos(a_arr)             # weights for the efficiency of the ICS 
+#a_arr  = np.arcsin(1.0/R_arr)           # array angles obtained from the simplification for R>>RLC
+#w_arr  = 1.-np.cos(a_arr)             # weights for the efficiency of the ICS 
 
 alpha = 1         # power-law evolution index of Gammas along the current sheet WE WANT TO VARY BETWEEN 0.5 and 10
 gamma_w = 6*10**7 # corresponds to Gamma_w * m_e * c^2 = 30 TeV, the maximum possible with HESS Vela data
@@ -101,7 +101,7 @@ theta_3d  = add_dimension_R(theta_2d, E_mean)              # New array dimension
 
 theta_3d = theta_3d*u.rad                                  # Array in 3 dimensions and units, THIS IS THE theta_L in the paper! 
 
-theta_init = theta_init(beta_3d, theta_3d, epsilon_mean_3d, E_mean_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
+theta_init = theta_init_funct(beta_3d, theta_3d, epsilon_mean_3d, E_mean_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
 if debug:
     print ('theta_arr: ', theta_arr,'\n')
@@ -148,6 +148,8 @@ if debug:
     ''' 
 
 # !!! NOT CLEAR WHERE THIS FORMULA COMES FROM !!!
+###This are just the analytical solutions for the theta
+##such that the final energy is max or min
 theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
@@ -329,6 +331,10 @@ mask = epsilon_mean > 0.2 * u.keV
 print ('epsilon: ', epsilon_mean)
 
 print ('mask: ', mask)
+
+"""
+###This data was useful for the bachelor thesis, we are 
+###not using it anymore
 ###Experimental data 1
 #Points that range from 2e-4 MeV to 2e-2 MeV
 Interval_1_2 = np.array([0.00018529204335398188, 0.00026826936312485507, 0.000404709199115943, 0.0006628706949378706, 0.0011787679216418198, 0.0017782806652028994, 0.0027952995832933696, 0.004970836558590657, 0.008483426131078615, 0.014478204824082668, 0.02682698680657344, 0.049708318805032674, 0.08483450082550081, 0.13894990437515836, 0.22758518925665774])
@@ -346,8 +352,12 @@ Data_1_3 = Data_1_3*1e3
 #Points that range from 1e-4 MeV to 2e1 MeV
 Data_tot = np.concatenate((Data_1_3, Data_1_2))
 Interval_tot = np.concatenate((Interval_1_3, Interval_1_2))
+"""
 
+###This data is only useful to obtain the xi^2
+###I use the next set of data, which has a wider range
 ### Experimental data obtained with plot digitalizer
+
 Interval_x = np.array([0.0003162276172147746, 0.0006628700711058477, 0.001279801052582922, 0.002470912307632171, 0.004970822524341731, 0.010419739772213055, 0.02011739496035263, 0.035774307157273, 0.07498939446834635, 0.15719128418077574, 0.3162285100282012, 0.6105401886168376, 1.1312834556437819, 1.8529221773372084, 4.970827202420301, 12.798058703114059, 20.117413892984658, 32.95018783048523, 66.28706949378679, 127.98046658775885, 227.58476089298526, 388.4066097985313, 749.8967676108324, 1279.803461444897, 2096.1821765480395, 3727.6072514469956, 6628.719426036748])
 Interval_y = np.array([0.000719370045023045, 0.0008129133633486966, 0.0008674801800921799, 0.0009142518392550057, 0.0009532283408371741, 0.0009844093279992444, 0.0009922048424193426, 0.0009844093279992444, 0.0009688190128379296, 0.0009532283408371741, 0.0009220473536751038, 0.0008908660096735928, 0.0008362991929301096, 0.0007817323761866263, 0.0007271652026037024, 0.0007583465466052134, 0.0006024408971159803, 0.0005790550675345674, 0.0006336218842780508, 0.0006725983858602192, 0.0006803935434408766, 0.0006881890578609747, 0.0006881890578609747, 0.0006570077138594637, 0.0006258267266973932, 0.000540078565952399, 0.0005088975787903287])
 
@@ -367,12 +377,24 @@ for i in range(int(len(Inc_y)/2)):
     sigma2 += a**2
 sigma = np.sqrt(sigma2)
 
-(Sedfit, xi, poptspectrum) = Xi_Fit(Interval_y, Interval_x, 6, sigma)  
+#(Sedfit, xi, poptspectrum) = Xi_Fit(Interval_y, Interval_x, 6, sigma)  
+
+#Data from 10^(-7) MeV to 10^(4) MeV
+#Or from 10^(-4) keV to 10^(7) keV
+X_Big = np.array([1.1944047158487747e-7, 2.1203575636148756e-7, 3.467839076623088e-7, 5.443834170656021e-7, 9.275954306250515e-7, 0.0000014561447605285923, 0.0000024811799622326876, 0.000004227784025925556, 0.000008146648246459351, 0.000016354973029694933, 0.00002903403704462725, 0.00005594669202739169, 0.000117017054331283, 0.0002164270061095007, 0.00047161768398550286, 0.0010277055707886824, 0.00233320474599216, 0.005749672706374927, 0.012529177679623117, 0.025153163888690443, 0.059494912073196335, 0.11464280760679842, 0.23015311955254833, 0.4256759913858437, 0.9275954306250515, 2.105916324251611, 4.981135061152013, 9.598321748531447, 20.07567019310334, 37.130632114822845, 71.54830161983224, 121.91362011272176, 225.4833704005958, 417.039132134727, 740.3482130624178, 1210.8375057218682, 2063.1878094768604, 3662.6716541911796, 6502.1290036378205, 9025.853079842418, 12025.907861354171])
+Y_Big = np.array([6.59018332454053e-7, 9.820330486042001e-7, 0.0000015174084706812314, 0.0000022611552965359915, 0.0000034938704001522033, 0.0000052063744383448835, 0.000007758254224618683, 0.000012889497702031668, 0.000021414537597773703, 0.00003557799001385297, 0.00005700403559975696, 0.00009133343602022242, 0.00014633718988661077, 0.00022611590498430121, 0.00036228913135277107, 0.00048421675487409394, 0.0006471777821059101, 0.0008044736055992826, 0.0008969245261443588, 0.0008341810381864746, 0.0008044736055992826, 0.0007758254224618692, 0.0007215521074977803, 0.0006241310749234866, 0.0005020969762102532, 0.0004039237648123596, 0.00029145204376879587, 0.00021029783641590997, 0.0001819042773660656, 0.00014112572857959434, 0.00020280890093174724, 0.00022611590498430121, 0.00021806330884903467, 0.00023446547650996313, 0.00022611590498430121, 0.00019558632995889138, 0.00015734404006796033, 0.00012657912723303006, 0.00009470617799042817, 0.00006129173422357286, 0.000028621553906419568])
+
+X_keV = X_Big*1e3
+Y_keV = Y_Big*1e3
+
+X_Log = np.log10(X_keV)
+Y_Log = np.log10(Y_keV)
+
+(Sedfit, xi, poptspectrum) = Xi_Fit(Y_keV, X_keV, 6, sigma)  
 
 plt.figure()
-plt.plot(Interval_x, Sedfit, label = "Fitting quadratic")
-plt.plot(Interval_tot, Data_tot, '.', label = "Interval 4")
-plt.plot(Interval_x, Interval_y, '.', label = "Interval 5")
+plt.plot(X_keV, Sedfit, label = "Polynomia fit")
+plt.plot(X_keV, Y_keV, '.', label = "Data")
 
 plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
 plt.xlabel(r"E (keV)")
@@ -385,14 +407,16 @@ if plt.isinteractive():
 spec1d2 = SEDfromFIT(np.log10(epsilon_mean/E0), *poptspectrum)
 
 """ I will need to change this with the new polynomial"""
-spec_1d = np.empty(len(epsilon_mean)) * (1 / E0).unit
+###This spectrum was for the log parabola, which we do
+###not use anymore
+"""spec_1d = np.empty(len(epsilon_mean)) * (1 / E0).unit
 spec_1d[mask] = (
     K * (epsilon_mean[mask] / E0) ** (-a - 1 - b * np.log10(epsilon_mean[mask] / E0)) / (E0)
 )
 spec_1d[~mask] = (
     K1 * (epsilon_mean[~mask] / E0) ** (-a1 - 1 - b1 * np.log10(epsilon_mean[~mask] / E0)) / E0
 )
-
+"""
 # Broadcast to shape (len(E_mean), len(epsilon), len(R))
 #I change it to the new fiting
 spectra = np.broadcast_to(
@@ -405,9 +429,9 @@ spectra = np.broadcast_to(
 ### we expect the final result, i.e., the second integral to have the same units
 
 plt.clf()
-plt.plot(epsilon_mean, spec_1d, '.', label = "Original fit")
+#plt.plot(epsilon_mean, spec_1d, '.', label = "Original fit")
 plt.plot(epsilon_mean, spec1d2, '.', label = "Polynomial fit")
-plt.plot(Interval_x, Interval_y, '.', label = "Data")
+plt.plot(X_keV, Y_keV, '.', label = "Data")
 
 plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
 plt.xlabel(r"E (keV)")
@@ -760,8 +784,9 @@ for i in range(len(secitr_units)):
     A_initial = 1
     C_initial = 1
     
+    print(secitr_units[i])
     popt, pcov = curve_fit(asym_lorentz_C, phase, secitr_units[i], [x_initial, gamma_initial1, gamma_initial2, A_initial, C_initial], maxfev = 800000)
-    
+
     adjusts.append(popt)
     inc_adjusts.append(pcov)
     
