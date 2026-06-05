@@ -36,15 +36,13 @@ mp.mp.dps =  50  # number of digits for internal calculation
 
 Eunit = u.keV     # energy unit to which the results are getting referred to
 
-R0 =  0.9  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
+R0 =  1  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
 RLI = 10   # Upper integracion limit
 Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
 delta_R = 0.1  # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
-#a_arr  = np.arcsin(1.0/R_arr)           # array angles obtained from the simplification for R>>RLC
-#w_arr  = 1.-np.cos(a_arr)             # weights for the efficiency of the ICS 
 
 alpha = 1         # power-law evolution index of Gammas along the current sheet WE WANT TO VARY BETWEEN 0.5 and 10
 gamma_w = 6*10**7 # corresponds to Gamma_w * m_e * c^2 = 30 TeV, the maximum possible with HESS Vela data
@@ -55,18 +53,16 @@ epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Ener
 
 log_epsilon_max = 7.5   # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_bins= 100   # 100  # was 30 number of logarithmically-space bins of epsilon
+log_epsilon_bins= 15   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
 epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon = epsilon_arr[1:] - epsilon_arr[:-1]       # Energy spacing of the incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0) # Spacing of natural logarithm of incident photon energies
 
-log_steps = 100 # Number of final photon energies 
-
 log_E_min   = 6   # 10^6 keV --> 1 GeV
 log_E_max   = 11  # 10^11 keV --> 100 TeV
-log_E_bins  = 100
+log_E_bins  = 15
 E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
 E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
@@ -217,7 +213,7 @@ if debug:
     print ('E_log_min for epsilons (test_idx=-1): ',E_log_min[test_idx,:,test_idx])
     print ('E_log_min for E_gammas (test_idx=-1): ',E_log_min[:,test_idx,test_idx],'\n')
     
-
+"""
 plt.figure()
 Z = E_log_max[0,:,:].to_value(u.keV)
 mask = np.isfinite(Z) & (Z > 0)
@@ -251,7 +247,7 @@ plt.tight_layout()
 plt.savefig('Emin.png')
 if plt.isinteractive():
     plt.show()
-
+"""
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per tant no em canvia el resultat quina triï
 E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[-1], theta_3d[0], 0.*u.rad,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
 E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0],  theta_3d[0], np.pi*u.rad, m_keV)  # theta_Lbar is pi 
@@ -268,16 +264,21 @@ if parallalize:
     theta_f_e = compute_theta_f_exact_parallel(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, n_jobs=n_jobs)
 else: 
     theta_f_e = compute_theta_f_exact(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, fill_value=np.nan)
+#theta_f_e = compute_theta_f_exact(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, fill_value=np.nan)
 
-print ('theta_f_e: ',theta_f_e)
-
-comprovacions = equation_solve(theta_f_e, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, m)
+comprovacions = equation_solve(theta_f_e, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, m_keV)
 
 # Broadcast min/max from (n_Ei, n_R) to (n_Ef, n_Ei, n_R)
+
 valid = (
     (E_mean_3d > E_log_min[:, :, :]) &
     (E_mean_3d < E_log_max[:, :, :])
 )
+
+theta_f_e_valid = theta_f_e[valid]
+theta_f_e_nans = theta_f_e_valid[~np.isfinite(theta_f_e_valid)]
+print ('theta_f_e: ',theta_f_e_valid,'out of which nans/infs', len(theta_f_e_nans), 'Nans:', theta_f_e_nans)
+
 contador = np.count_nonzero(valid)
 
 good = valid & (np.abs(comprovacions / m_keV**2) < 0.1)
@@ -603,12 +604,12 @@ first = Funct*(1-np.cos(Theta4D))*xsec4D*spectra4D
 print ('first: ', first)
 
 # Validity mask: shape (n_Efotof, n_Efotoi, n_R)
-valid = (
+valid2 = (
     (E_mean_3d >= E_log_min[None, :, :]) &
     (E_mean_3d <= E_log_max[None, :, :])
 )
 
-print ('Valid: ', valid)
+print ('Valid: ', valid2)
 
 weights = Delta_epsilon_log * epsilon_mean     # epsilon_mean is the Jacobian of the integration in terms of log(epsilon)
 
@@ -616,13 +617,13 @@ weights = Delta_epsilon_log * epsilon_mean     # epsilon_mean is the Jacobian of
 weights_4d = weights[None, None, :, None]
 
 # Broadcast valid mask to include phase dimension
-valid_4d = valid  #[None, :, :, :]
+valid_4d = valid2  #[None, :, :, :]
 
 # Masked weighted sum over epsilon axis (axis=2)
 #first_int = np.sum(first * weights_4d * valid_4d, axis=2)
 
 # Use np.where to avoid nan * 0 = nan issue
-masked = np.where(valid, first * weights_4d, 0.0)
+masked = np.where(valid2, first * weights_4d, 0.0)
 first_int = np.sum(masked, axis=2)
 
 # With units and without units, now I do not need
@@ -683,10 +684,10 @@ sigma = 0.015
 
 theta0 = phase_r(R_3d*RLC, freq_r)
 
-#rho = anisotropy(phase_3d, R_3d*RLC, sigma, theta0 )
+rho = anisotropy(phase_3d, R_3d*RLC, sigma, theta0 )
 
 
-rho = 1
+#rho = 1
 
 #torno a integrar, tranposo i poso les unitats que toquen
 second_int = np.sum(first_int*RLC**2/(R_3d*RLC)**2*rho, axis = 2)*delta_R
@@ -768,8 +769,9 @@ inc_adjusts = []
 
 r_mesh, phase_mesh = np.meshgrid(R_arr/RLC, phase)
 
-#If I put rho = 1, then this rho2 = 1 also.
-rho2 = 1
+#If I put rho = 1, then this rho2 = 1 also, this is to 
+#show the anisotropy we have assumed in a graphic
+#rho2 = 1
 #rho2 = np.transpose(rho, axes = [1,0,2])
 
 plt.clf()

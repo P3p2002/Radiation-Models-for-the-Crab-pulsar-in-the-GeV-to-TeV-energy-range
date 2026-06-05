@@ -30,9 +30,6 @@ from constants import *
 
 SetUp()
 
-m = m_e*c**2
-m = m.to('keV')
-m_unitless = m/(u.keV)
 plt.style.use(["science","no-latex"])
 plt.rcParams["figure.figsize"] = (7,7)
 plt.rcParams['xtick.top'] = False
