@@ -30,17 +30,18 @@ SetUp()
 
 debug = False
 parallalize = True
-n_jobs = 10
+n_jobs = 4
 
 mp.mp.dps =  50  # number of digits for internal calculation
 
 Eunit = u.keV     # energy unit to which the results are getting referred to
 
-R0 =  1  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
+
+R0 =  1.0  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
 RLI = 10   # Upper integracion limit
 Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
-delta_R = 0.1  # Step width for the integral (in units of RLC)
+delta_R = 0.05 # Step width for the integral (in units of RLC)
 
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 
@@ -143,9 +144,8 @@ if debug:
     plt.show()
     ''' 
 
-# !!! NOT CLEAR WHERE THIS FORMULA COMES FROM !!!
-###This are just the analytical solutions for the theta
-##such that the final energy is max or min
+
+# Solutions of Eq. 3.22
 theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
@@ -278,6 +278,7 @@ valid = (
 theta_f_e_valid = theta_f_e[valid]
 theta_f_e_nans = theta_f_e_valid[~np.isfinite(theta_f_e_valid)]
 print ('theta_f_e: ',theta_f_e_valid,'out of which nans/infs', len(theta_f_e_nans), 'Nans:', theta_f_e_nans)
+
 
 contador = np.count_nonzero(valid)
 
@@ -599,7 +600,7 @@ xsec4D = add_dimension_R(cross_section_exact, phase)*cross_section_exact.unit
 spectra4D = add_dimension_R(spectra, phase)*spectra.unit
 
 #Primer producte
-first = Funct*(1-np.cos(Theta4D))*xsec4D*spectra4D
+first = Funct * (1-np.cos(Theta4D)) * xsec4D * spectra4D
 
 print ('first: ', first)
 
@@ -860,11 +861,11 @@ E_i_0 = 0.02*1e-3*u.keV
 print(E_i_0*1000/E_i_0.unit, "eV")
 
 def angle_max(tf, G, B, ti, Ei):
-    eq = m*G*B*np.sin(tf)+Ei*np.sin(tf+ti)
+    eq = m_keV*G*B*np.sin(tf)+Ei*np.sin(tf+ti)  # FIXME: check whether m is in keV units!!!
     return eq
 
 def second_der(tf, G, B, ti, Ei):
-    eq = -m*G*B*np.cos(tf)-Ei*np.cos(tf+ti)
+    eq = -m_keV*G*B*np.cos(tf)-Ei*np.cos(tf+ti) # FIXME: check whether m is in keV units!!!
     return eq
 
 #Aquí trobo quin es l'angle maxim
