@@ -21,7 +21,7 @@ from astropy.constants import e
 from astropy.constants import eps0
 from astropy.constants import h
 import matplotlib.pyplot as plt
-import pandas as pds
+import pandas as pd
 import scienceplots
 import os
 from setup import SetUp
@@ -41,134 +41,160 @@ plt.rcParams['ytick.major.size'] = 10
 plt.rcParams['xtick.minor.size'] = 5
 plt.rcParams['ytick.minor.size'] = 5
 
+SetUp()
+
+debug = False
+parallalize = True
+n_jobs = 4
+
+mp.mp.dps =  50  # number of digits for internal calculation
+
+Eunit = u.keV     # energy unit to which the results are getting referred to
 
 
-T     = 33*10**(-3)*u.s # període de Crab (s)
-Omega = 2*np.pi/T       # velocitat angular
-Rl    = c*T/(2*np.pi)   # radi de llum
+R0 =  1.0  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
+RLI = 10   # Upper integracion limit
+Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
 
-mp.dps =  50  # number of digits for internal calculation
+delta_R = 0.05 # Step width for the integral (in units of RLC)
 
-R0 =  0.9  # Radi inicial on els positrons comencen a accelerar
-RLI = 10   # Limit d'integració superior
-Ri =  0.9  # Radi inicial on els positrons comencen a accelerar (en unitats de RLC)
-Rf =  2    # Radi final on els positrons deixen d'accelerar (en unitats de RLC)
+R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 
-delta_R = 0.05          # Step width for the integral (in units of RLC)
+alpha = 1         # power-law evolution index of Gammas along the current sheet WE WANT TO VARY BETWEEN 0.5 and 10
+gamma_w = 6*10**7 # corresponds to Gamma_w * m_e * c^2 = 30 TeV, the maximum possible with HESS Vela data
+gamma_0 = 300     # Initial gamma factor of the  positrons when the enter the current sheet
+E0 = 1*Eunit      # pivot energy, 1 keV
 
-R  = np.arange(1., RLI, delta_R)   # array de distancies respecte l'estrella de neutrons, en unitats de RLC
-a  = np.arcsin(1/R)                # array d'angles que s'obté a partir de la simplificació per a R>>RLC
-w  = 1.-np.cos(a)     
-#Si nomes vull graficar una alpha necessito posarla com una llista o array
-#alpha = np.array([1,3,10])
-alpha = 1
-#gamma_w = np.arange(55*10**4, 1*10**6, 0.5*10**4)      # factors gamma final que utilitza el model
-gamma_w = 5.5*10**5
+epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Energies for the pulse profiles
 
-#Vigilar, perquè si només vull graficar un conjunt de Ri i Rf necessito posarles com a llistes
-#Ri    = np.array([1, 20, 25])*Rl        # radi on es comencen a accelerar els electronsque anirà a les funcions de gamma i del moment 
-#Rf    = np.array([30, 50, 70])*Rl         # radi final que diu el mateix model
+log_epsilon_max = 7.5   # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
+log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
+log_epsilon_bins= 15   # 100  # was 30 number of logarithmically-space bins of epsilon
+epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
-gamma_0 = 300#Factor gamma inicials dels positrons
+epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
+Delta_epsilon = epsilon_arr[1:] - epsilon_arr[:-1]       # Energy spacing of the incident photons, logarithmically spaced, BUT LINEAR!!
+Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0) # Spacing of natural logarithm of incident photon energies
 
-E0 = 1*u.keV
+log_E_min   = 6   # 10^6 keV --> 1 GeV
+log_E_max   = 11  # 10^11 keV --> 100 TeV
+log_E_bins  = 15
+E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
-E_fotoi2 = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV)#Energies en les quals s'ha dividit els pulse profiles
-#Delta_E_fotoi = [0.2, 1.4, 2.0, 6.0, 4.0, 26.0, 50.0, 160.0]*(u.keV)
+E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
+Delta_E    = E_arr[1:]-E_arr[:-1]            # Energy spacing of scattered photons, logarithmically spaced, BUT LINEAR!!
+Delta_E_log = np.log((E_arr[1:])/E0) - np.log((E_arr[:-1])/E0) # Spacing of natural logarithm of scattered photon energies
 
+epsilon_mean_3d = add_dim_e_fi(E_mean, epsilon_mean, R_arr)   # Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
+E_mean_3d       = add_dim_e_ff(E_mean, epsilon_mean, R_arr)   # Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
 
-#E_fotoi = np.logspace(-1,2, steps)*(u.keV)
-E_fotoi1 = np.logspace(-5,2,30)*(u.keV)#Energies inicials dels fotons
+Gamma_arr = gammaw(R_arr, R0, Rf, gamma_0, gamma_w, alpha)  # array of gamma factors for each distance, following the wind model
+M_arr     = M(R_arr, R0, Rf, gamma_w, alpha)                # array of angular moments que s'emporten els electrons
+Gamma_2d  = add_dimension_R(Gamma_arr, epsilon_mean)        # New array dimension: len(epsilon_mean), len(Gamma_arr)
+Gamma_3d  = add_dimension_R(Gamma_2d, E_mean)               # New array dimension: len(E_mean), len(epsilon_mean), len(Gamma_arr)
+beta_3d   = beta_f(Gamma_3d, dps=None)                      # Value of beta of the positrons in 3 dimensions
+beta_arr  = beta_f(Gamma_arr, dps=None)                     # Value of beta of the positrons in 1 dimension (R)
 
-logE = np.log(E_fotoi1/E0)
-
-E_fotoi = (E_fotoi1[1:] + E_fotoi1[:-1])/2#Bins d'energies dels fotons
-
-Delta_E = E_fotoi1[1:] - E_fotoi1[:-1]#Espaiat d'energies dels fotons
-
-Delta_log = np.log((E_fotoi1[1:])/E0) -np.log((E_fotoi1[:-1])/E0)#Espaiat logaritmic
-
-steps = 30 #Numero de energia final dels fotons que tindrè
-#El logspace em genera un conjunt de 10**n sent n valors entre 1 i 6 espaiats
-#pels steps que li doni
-
-E_fotof1 = np.logspace(6,9, steps)*(u.keV)#Energies finals dels fotons
-
-E_fotof = (E_fotof1[1:]+E_fotof1[:-1])/2#Bins de les energies finals dels fotons
-
-Delta_Ef = E_fotof1[1:]-E_fotof1[:-1]#Espaiat d'aquesta energia
-    
-E_fotoi_3d = add_dim_e_fi(E_fotof, E_fotoi, R)  # Energia inicials dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
-
-E_fotof_3d = add_dim_e_ff(E_fotof, E_fotoi, R)  # Energia final dels fotons en 3 Dimensions: la de R, la de E_i, la de E_f
-
-Gamma = gammaw(R, Ri, Rf,
-               gamma_0, gamma_w, alpha)         # array de factors gamma per a cada distància, segons el model de vent
-
-M_i   = M(R, Ri, Rf,
-          gamma_w, alpha)                       # array de moments angulars que s'emporten els electrons
-
-Gamma_2d = add_dimension_R(Gamma, E_fotoi)      # Factor gamma dels positrons en 2 dimensions
-
-#print ('Gamma_2d: ', Gamma_2d,'\n')
-
-Gamma_3d = add_dimension_R(Gamma_2d, E_fotof)   # Factor gamma dels positrons en 3 dimensions
-
-#print ('Gamma_3d: ', Gamma_3d,'\n')
-
-beta = beta_f(Gamma_3d, dps=None)               # Valor de la beta dels positrons en 3 dimensions
-
-#print ('beta_3d: ', beta,'\n')
-
-beta1d = beta_f(Gamma, dps=None)                # Valor de la beta dels positrons en 1 dimensio (la de R, que es de l'unic parametre que depen)
-
+if debug: 
+    print ('R: ', R,'\n')
+    print ('Gamma_arr: ', Gamma_arr,'\n')
+    print ('M: ', M_arr,'\n')
+    print ('Gamma_2d: ', Gamma_2d,'\n')
+    print ('Gamma_3d: ', Gamma_3d,'\n')
+    print ('beta_3d: ', beta_3d,'\n')
+    print ('beta_arr: ', beta_arr,'\n')
 
 #theta_1d = np.arcsin(M_i*c/(Gamma*m*R*RLC))    # Array d'angles de la colisio entre electrons i fotons
 #print ('theta_1d: ', theta_1d,'\n')
-theta_1d = theta(R,R0,Rf,RLC,gamma_w,Gamma,alpha)*u.rad
-#print ('theta_1d: ', theta_1d,'\n')
 
-theta_2d = add_dimension_R(theta_1d, E_fotoi)  # Array d'angles de la colisio de positrons i fotons en 2 dimensions
+theta_arr = theta_from_R(R_arr,R0,Rf,RLC,gamma_w,Gamma_arr,beta_arr, alpha)*u.rad  # Array of collision angles, Eq. 2.5
+theta_2d  = add_dimension_R(theta_arr, epsilon_mean)       # New array dimension: len(Gamma_arr), len(epsilon_mean)
+theta_3d  = add_dimension_R(theta_2d, E_mean)              # New array dimension: len(Gamma_arr), len(epsilon_mean), len(E_mean)
 
-thetau = add_dimension_R(theta_2d, E_fotof)    # Array d'angles de la colisio de positrons i fotons en 3 dimensions
+theta_3d = theta_3d*u.rad                                  # Array in 3 dimensions and units, THIS IS THE theta_L in the paper! 
 
-theta = thetau*u.rad                           # Array en 3 dimensions i amb unitats
+theta_init = theta_init_funct(beta_3d, theta_3d, epsilon_mean_3d, E_mean_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
-theta_init = theta_init(beta, theta, E_fotoi_3d, E_fotof_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
+if debug:
+    print ('theta_arr: ', theta_arr,'\n')
+    print ('theta_init:', theta_init)
 
-print ('theta_init:', theta_init)
+plt.figure()
+plt.plot(R_arr, np.rad2deg(theta_arr), label = r"$\theta_{L} (R)$")
+plt.ylabel(r"$\theta_{L}$ (deg)")
+plt.xlabel(r"$R (R_{LC})$")
+plt.xscale("log")
+plt.yscale("log")
+plt.legend()
+plt.savefig('theta_L.png')
+if plt.isinteractive():
+    plt.show()
 
-#Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per taant no em canvia el resultat quina triï
-E_fotof_max = E_fotoi_3d[0]*m*Gamma_3d[0]*(1-beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1-beta[0]) + E_fotoi_3d[0]*(1-np.cos(theta[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
-E_fotof_min = E_fotoi_3d[0]*m*Gamma_3d[0]*(1+beta[0]*np.cos(theta[0]))/(m*Gamma_3d[0]*(1+beta[0]) + E_fotoi_3d[0]*(1+np.cos(theta[0])))#Energia minima que els fotons poden assolir, primera aproximacio
+
+if debug:
+    ind1 = -1
+    angleplot = np.linspace(0, 2*np.pi, 2000)*u.rad
+    derfinal = derEfotof(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
+    Ef = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
+    
+    '''   TESTS
+    gamma_test = Gamma_3d[13,0,0]
+    beta_test = beta_f(gamma_test, dps= None)
+    E_in_test = epsilon_mean_3d[13,0,0]
+    theta_test = theta_3d[13,0,0]
+    Eout_test = E_mean_3d[13,0,0]
+    Etest = Eout_test - Eout_from_Ein_theta_thetaL(E_in_test,gamma_test, beta_test, theta_test, angleplot ,m_keV)
+    plt.plot(angleplot, Etest)
+    plt.yscale("log")
+    
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+    plt.show()
+    
+    plt.plot(angleplot, derfinal)
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.ticklabel_format(style='plain', axis='y', useOffset=False)
+    plt.show()
+    ''' 
+
+
+# Solutions of Eq. 3.22
+theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
+theta_ss = theta_fs + np.pi*u.rad
+
+if debug:
+    print ('theta_fs:', theta_fs)
+
+E_log_max = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_fs, m_keV)
+E_log_min = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
 
 
 
+#Inicialtzo la variable de la fase
 delta_phase = 0.004
 phase = np.arange(0.2,0.5,delta_phase)
-phase_3d = add_dim_phase(phase, E_fotof, R) #El poso en les dimensions que em conve
+phase_3d = add_dim_phase(phase, E_mean, R_arr) #El poso en les dimensions que em conve
 time = phase_3d*P
 
 
-R_2d = add_dimension_R(R, E_fotof)*RLC.unit
-R_3d = add_dimension_R(R_2d, phase)*RLC.unit
+#Canvio les variables segons les dimensions que em conve
+R_2d = add_dimension_R(R_arr, E_mean)
+R_3d = add_dimension_R(R_2d, phase)
+
 #Això són diferents coses que s'hauràn d'afegir per la segona integral
 Lsd = 4.6e31*u.J/u.s
 
 dNdV = Lsd/(4*np.pi*c**3*gamma_w*m_e)
 
-#carrega electró en unitats naturals alpha = e^2/(4pi) \approx 1/137
-e2 = 4*np.pi/137
-
-kevs_m = 8.07e8/(u.m*u.keV)
+sigma = 0.015
 
 freq_r = 0.1*u.rad/(u.m)
 
-sigma = 0.015
+theta0 = phase_r(R_3d*RLC, freq_r)
 
-theta0 = phase_r(R_3d, freq_r)
-
-rho = anisotropy(phase_3d, R_3d, sigma, theta0 )
+rho = anisotropy(phase_3d, R_3d*RLC, sigma, theta0 )
 
 #rho = 1
 
@@ -193,9 +219,10 @@ for i in range(len(phase)):
     first_int.append(aux)
 first_int = np.array(first_int)*(1/u.keV)**3
 
-second_int = np.sum(first_int*Rl**2/R_3d**2*rho, axis = 2)*delta_R
+#torno a integrar, tranposo i poso les unitats que toquen
+second_int = np.sum(first_int*RLC**2/(R_3d*RLC)**2*rho, axis = 2)*delta_R
 secondi_tr = np.transpose(second_int)
-secitr_units = secondi_tr*dNdV*e2/(kevs_m**2*Rl)
+secitr_units = secondi_tr*dNdV*e2/(kevs_m**2*RLC)
 
 """   
 #Això es per si directament vull llegir la segona integral en comptes de la 
@@ -234,27 +261,32 @@ cry = np.array(y2)
 
 spec = np.sum(secitr_units, axis = 1)*delta_phase
 
-SED = (spec*E_fotof**2).to('MeV')
+SED = (spec*E_mean**2).to('MeV')
 
 
 #Plotejo la SED
-plt.plot(E_fotof.to('MeV') , SED , label = "Theoretical SED")
-plt.plot(E_fotof.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
+plt.clf()
+plt.plot(E_mean.to('MeV') , SED , label = "Theoretical SED")
+plt.plot(E_mean.to('MeV') , SED*0.015 , label = r"Theoretical SED, $\eta$")
 plt.plot(xns2, ns,'.', label = " Data of the SED")
 plt.plot(cr, cry, label ="Model of CR")
-plt.ylim((1e-10, 1e-2))
-plt.xlim((1e1, 1e7))
+plt.ylim((1e-8, 1e-1))
+plt.xlim((1e1, 1e8))
 plt.xscale("log")
 plt.yscale("log")
 plt.ylabel(r"$E_{\gamma}^2 \dfrac{dN^{(0)}}{dSdtd\epsilon}$ (MeVcm$^{-2}$s$^{-1}$)", fontsize = 20)
 plt.xlabel(r"$E_{\gamma}$(MeV)", fontsize = 20)
+plt.title(
+    rf"SED with $\epsilon_{{max}} = 10^{{{log_epsilon_max}}}$ and $E_{{\gamma,max}} = 10^{{{log_E_max}}}$",
+    fontsize=20)
 plt.legend(fontsize = 20)
-plt.savefig("SED_theoretical")
-plt.show()
+plt.savefig("SED_theoretical.png")
+if plt.isinteractive():
+    plt.show()
 #Ara ja he comparat els SEDs
 
 #M'ho imprimeixo per mi
-print(Ri/Rl, Rf/Rl, R[0]/Rl, R[-1]/Rl)
+#print(Ri/Rl, Rf/Rl, R[0]/Rl, R[-1]/Rl)
 
 #Això servira per la normalitació
 phase_averaged = np.sum(secitr_units, axis = 1)*delta_phase
@@ -267,11 +299,12 @@ Es = []
 adjusts = []
 inc_adjusts = []
 
-r_mesh, phase_mesh = np.meshgrid(R/Rl, phase)
+r_mesh, phase_mesh = np.meshgrid(R_arr/RLC, phase)
 
-for i in range(24):
+plt.clf()
+for i in range(len(secitr_units)):
     
-    #plt.contourf(r_mesh, phase_mesh, rho2[i].value)
+    #plt.contourf(r_mesh, phase_mesh, rho2[i])
     #plt.show()
     
     x_initial = 0.3
@@ -280,32 +313,36 @@ for i in range(24):
     A_initial = 1
     C_initial = 1
     
+    print(secitr_units[i])
     popt, pcov = curve_fit(asym_lorentz_C, phase, secitr_units[i], [x_initial, gamma_initial1, gamma_initial2, A_initial, C_initial], maxfev = 800000)
-    
+
     adjusts.append(popt)
     inc_adjusts.append(pcov)
     
-    plt.plot(phase, secitr_units[i], label = "excate"+str(i))
+    #plt.plot(phase, secitr_units[i], label = "excate"+str(i))
+    plt.plot(phase, secitr_units[i], label = "_nolegend_")
     
     max_value.append(np.max(asym_lorentz_C(phase,  *popt)))
     
     plt.plot(phase, asym_lorentz_C(phase, *popt))
     
-    ids = pds.Series(secitr_units[i]).idxmax()
+    ids = pd.Series(secitr_units[i]).idxmax()
     maxs.append(phase[ids])
-    Es.append(E_fotof[i]/(E_fotof[i].unit*1e6))#En GeV
+    Es.append(E_mean[i]/(E_mean[i].unit*1e6))#En GeV
     plt.axvline(phase[ids])
-    print(phase[ids], E_fotof[i].to('GeV'),i)
+    print(phase[ids], E_mean[i].to('GeV'),i)
 
-    if (i+1)%1 == 0:
-        plt.xlabel("Phase(rad)")
-        plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 15)
+    if (i+1)%4 == 0:
+        plt.xlabel("Phase(rad)", fontsize = 25)
+        plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 25)
         plt.legend()
-        plt.show()
-plt.xlabel("Phase(rad)")
-plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 15)
+        if plt.isinteractive():
+            plt.show()
+plt.xlabel("Phase(rad)", fontsize = 25)
+plt.ylabel(r"$\frac{dN_{\gamma}}{dE_{\gamma}dSdt}$", fontsize = 25)
 plt.legend()
-plt.show()    
+if plt.isinteractive():
+    plt.show()    
 
 #Ho torno a transposar per conveniencia
 seci_units = np.transpose(secitr_units)
@@ -314,8 +351,8 @@ seci_units = np.transpose(secitr_units)
 flux = []
 for j in range(len(phase)):
     aux = 0
-    for i in range(len(E_fotof)):
-        aux += seci_units[j][i]*Delta_Ef[i]
+    for i in range(len(E_mean)):
+        aux += seci_units[j][i]*Delta_E[i]
     flux.append(aux/aux.unit)
 flux = np.array(flux)*aux.unit
 
@@ -331,6 +368,8 @@ for j in range(len(Es)):
     phase_right.append(right)
     
     
+    
+    
 
 #Grafico la posiscio dels peaks per comparar amb resultats
 plt.plot(maxs, Es, 'x', color = "k")
@@ -340,7 +379,8 @@ plt.ylabel(r'$E_{\gamma}$ (GeV)', fontsize = 20)
 plt.xlabel('Phase', fontsize = 20)
 plt.yscale("log")
 plt.savefig("Theoretical_Displacement_peak")
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 #A partir d'aqui ho faig per veure quina és l'energia inicial més baixa dels fotons que em permet
 #tenir una energia finals dels fotons de 1 GeV
@@ -359,20 +399,23 @@ def second_der(tf, G, B, ti, Ei):
 
 
 #Aquí trobo quin es l'angle maxim
-tmax = fsolve(lambda x: angle_max(x*u.rad, Gamma, beta1d, theta_1d, E_i_0), -theta_1d, xtol = 1e-8, maxfev = 3000)
+tmax = fsolve(lambda x: angle_max(x*u.rad, Gamma_arr, beta_arr, theta_arr, E_i_0), -theta_arr, xtol = 1e-8, maxfev = 3000)
 
-tmax_com = second_der(tmax*u.rad, Gamma, beta1d, theta_1d, E_i_0)
+tmax_com = second_der(tmax*u.rad, Gamma_arr, beta_arr, theta_arr, E_i_0)
 
 #Grafico l'energia final dels fotons per aquest angle maxim
-E_fotof_max2 = E_i_0*m*Gamma*(1-beta1d*np.cos(theta_1d))/(m*Gamma*(1-beta1d*np.cos(tmax*u.rad)) + E_i_0*(1-np.cos(theta_1d+tmax*u.rad)))
+E_log_max2 = E_i_0*m*Gamma_arr*(1-beta_arr*np.cos(theta_arr))/(m*Gamma_arr*(1-beta_arr*np.cos(tmax*u.rad)) + E_i_0*(1-np.cos(theta_arr+tmax*u.rad)))
 
-#plt.plot(R[R <= 2*Rl]/Rl, E_fotof_max2[R <= 2*Rl])
-plt.plot(R/Rl, E_fotof_max2)
+#plt.plot(R[R <= 2*RLC]/RLC, E_log_max2[R <= 2*RLC])
+plt.clf()
+plt.plot(R_arr/RLC, E_log_max2)
 plt.xlabel(r"R/R$_{L}$", fontsize = 20)
 plt.ylabel(r"$E_{\gamma}^{max}$(keV)", fontsize = 20)
 plt.savefig("Energia_max_0_02eV")
-plt.show()
+if plt.isinteractive():
+    plt.show()
    
+
 
 #Resultats dels valors experimentals
 A = 6.54617e+00
@@ -386,23 +429,24 @@ delta_phase2 = 0.001
 phase2 = np.arange(0.2,0.5,delta_phase2)
 
 #Aquí simplement garfico els resultats i els comparo amb els experimentals
-result = as_lorentz(phase2, x0, sigma_1, sigma_2, A)
+result = as_lorentz(phase, x0, sigma_1, sigma_2, 1)
 
 norm = np.sum(flux)*delta_phase
 
-norm2 = np.sum(result)*delta_phase2
-print(norm2)
+norm2 = np.sum(result)*delta_phase
 
 max_f_1 = np.max(flux)
 max_f_2 = np.max(result)
 
+plt.clf()
 plt.plot(phase, flux/norm, label = "theoretical result")
-plt.plot(phase2, result/norm2, label = "experimental result")
+plt.plot(phase, result/norm2, label = "experimental result")
 plt.xlabel("phase", fontsize = 20)
 plt.ylabel("Normalized flux", fontsize = 20)
 plt.legend(fontsize = 20)
 plt.savefig("Flux_obtained")
-plt.show()
+if plt.isinteractive():
+    plt.show()
 
 
 #Dades Aharonian
@@ -437,8 +481,9 @@ plt.xlim((0.1,0.5))
 plt.xlabel("phase", fontsize = 20)
 plt.ylabel("Normalized flux", fontsize = 20)
 plt.legend(fontsize = 17)
-plt.savefig(os.path.join(folder_name, "Flux_theory"))
-plt.show()
+plt.savefig("Flux_theory")
+if plt.isinteractive():
+    plt.show()
 
 """
 the_f = np.arange(0,2*np.pi,0.01)

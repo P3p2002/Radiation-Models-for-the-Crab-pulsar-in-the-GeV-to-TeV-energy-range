@@ -28,7 +28,7 @@ import os
 
 SetUp()
 
-debug = False
+debug = True
 parallalize = True
 n_jobs = 4
 
@@ -54,7 +54,7 @@ epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Ener
 
 log_epsilon_max = 7.5   # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_bins= 15   # 100  # was 30 number of logarithmically-space bins of epsilon
+log_epsilon_bins= 100   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
 epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
@@ -63,7 +63,7 @@ Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0)
 
 log_E_min   = 6   # 10^6 keV --> 1 GeV
 log_E_max   = 11  # 10^11 keV --> 100 TeV
-log_E_bins  = 15
+log_E_bins  = 100
 E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
 E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
@@ -81,7 +81,7 @@ beta_3d   = beta_f(Gamma_3d, dps=None)                      # Value of beta of t
 beta_arr  = beta_f(Gamma_arr, dps=None)                     # Value of beta of the positrons in 1 dimension (R)
 
 if debug: 
-    print ('R: ', R,'\n')
+    print ('R: ', R_arr,'\n')
     print ('Gamma_arr: ', Gamma_arr,'\n')
     print ('M: ', M_arr,'\n')
     print ('Gamma_2d: ', Gamma_2d,'\n')
@@ -264,8 +264,28 @@ if parallalize:
     theta_f_e = compute_theta_f_exact_parallel(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, n_jobs=n_jobs)
 else: 
     theta_f_e = compute_theta_f_exact(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, fill_value=np.nan)
-#theta_f_e = compute_theta_f_exact(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, fill_value=np.nan)
 
+def E_final(i, j, k):
+    epsilon_value = epsilon_mean_3d[i, j, k]
+    Gamma_value = Gamma_3d[i,j,k]
+    Beta_value = beta_3d[i,j,k]
+    theta_in_value = theta_3d[i,j,k]
+    theta_f = np.linspace(0, np.pi-2.5, 100)*u.rad
+    E_value = E_mean_3d[i,j,k]
+    num = epsilon_value*m_keV*Gamma_value*(1-Beta_value*np.cos(theta_in_value))
+    den = m_keV*Gamma_value*(1-Beta_value*np.cos(theta_f)) + epsilon_value*(1-np.cos(theta_in_value + theta_f))
+    return (theta_f,num/den - E_value)
+    
+    
+if debug:
+    i1, j1, k1 = 11, 98, 9
+    xvalues, yvalues = E_final(i1,j1,k1)
+    plt.plot(xvalues, yvalues)
+    plt.xlabel(r"$\theta_L^\prime$(rad)", fontsize = 20)
+    plt.ylabel("Eq.(3.20)", fontsize = 20)
+    plt.title(f"Case with i, j, k = {i1, j1, k1}", fontsize = 20)
+    plt.show()
+    
 comprovacions = equation_solve(theta_f_e, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, m_keV)
 
 # Broadcast min/max from (n_Ei, n_R) to (n_Ef, n_Ei, n_R)

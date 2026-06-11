@@ -204,14 +204,9 @@ def Eout_from_Ein_theta_thetaL(epsilon, Gamma, beta, thetaL, theta_Lbar, m_e):
 
 def derEfotof(epsilon, Gamma, beta, theta, theta_L, m_e):
     num = -(Gamma*m_e*beta*np.sin(theta_L) + (np.sin(theta + theta_L))*epsilon)
-    num2 = Ein*m_e*Gamma*(1-beta*np.cos(theta))
+    num2 = epsilon*m_e*Gamma*(1-beta*np.cos(theta))
     den = (beta*np.cos(theta_L)-1)*Gamma*m_e + (np.cos(theta+theta_L) -1)*epsilon
     return num
-
-
-
-
-
 
 def display_sigfig(x, xerr, sigfigs=2) -> str:
     '''
