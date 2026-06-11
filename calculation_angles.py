@@ -194,9 +194,9 @@ def f_local_numba(x, theta0, a_dom, L,
 def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
                                  theta0,
                                  domain=(0.0, 2*np.pi),
-                                 step0=1e-7,
-                                 expand_factor=2.,
-                                 max_expand=100,
+                                 step0=1e-5,
+                                 expand_factor=1.01,
+                                 max_expand=300,
                                  method="brentq",
                                  xtol=1e-12,
                                  rtol=1e-12,
@@ -287,11 +287,12 @@ def solve_theta_f_bracketed_fast(theta_i, gamma, beta, E_out, E_in, m,
             if y0 > 0 and fa < 0 and fb < 0:
                 return theta0, False
             
-        step *= expand_factor
-
-        if step > 0.51 * L:
-            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma,' E_in=',E_in, ' E_out=',E_out)
+        if step > 0.61 * L:
+            print ('NO SOLUTION FOUND FOR y0=', y0, ' a=',a, ' b=',b, ' fa=',fa, ' fb=',fb, ' theta0=',theta0, ' theta_i=', theta_i,' gamma=',gamma,' E_in=',E_in, ' E_out=',E_out, ' step: ', step, ' L=',L, ' n=',_, ' step0=',step0)
             return 30000.0, True
+
+        step = step * expand_factor
+
         #raise ValueError(
         #f"Could not bracket root within half periodic domain: "
         #        f"theta0={theta0}, step={step}, fa={fa}, fb={fb}"
@@ -430,8 +431,8 @@ def _solve_one_flat(n, theta_i, gamma, beta, E_out, E_in, theta0, m_val):
         E_in,
         m_val,
         theta0,
-        step0=1e-8,
-        expand_factor=2.0,
+        step0=1e-6,
+        expand_factor=1.15,
         check_exists=True,
     )
 
@@ -487,7 +488,7 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
     Ein_arr     = E_fotoi_val[jj, kk, ii]
     theta0_arr  = theta_init_val[jj, kk, ii]
     
-    batch_size=500
+    batch_size= 'auto' #4096*4
     
     results = Parallel(
         n_jobs=n_jobs,
