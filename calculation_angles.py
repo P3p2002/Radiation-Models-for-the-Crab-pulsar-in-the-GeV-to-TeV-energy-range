@@ -547,28 +547,22 @@ def compute_theta_f_exact_parallel(theta_init, theta, Gamma_3d, beta,
 
     return out * u.rad
 
-
-
-#Per solucionar això ho haurè de fer elements per element de la funció, 
-# és a dir, que haurè de fer un bucle tridimensional
-def equation_solve(theta_f, theta_i, gamma, beta, E_foto_f, E_foto_i, m):
-
-    # this solves Eq. (3.19) for theta_f, given the input values gamma, beta, theta_i, and the ingoing and outgoing photon energies
-    # considering that: theta_f --> theta_L'
-    #                   theta_i --> theta_L
-    #                   E_foto_f --> E_gamma
-    #                   E_foto_i --> epsilon
-    eq = E_foto_f*(m*gamma*(1-beta*np.cos(theta_f)) + E_foto_i*(1 - np.cos(theta_f + theta_i))) - E_foto_i*m*gamma*(1-beta*np.cos(theta_i))
+def solve_eq319(theta_f, theta_i, Gamma, beta, E_gamma,epsilon, m_e):
+    '''
+    This solves Eq. (3.19) for theta_f, given the input values gamma, beta, theta_i, and the ingoing and outgoing photon energies
+    considering that: theta_f --> theta_L'
+                      theta_i --> theta_L
+    '''
+    eq = E_gamma*(m_e*Gamma*(1-beta*np.cos(theta_f)) + epsilon*(1 - np.cos(theta_f + theta_i))) - epsilon * m_e *Gamma*(1-beta*np.cos(theta_i))
     
     return eq
 
-#Funcio que em soluciona l'equacio que li pasi en funció d'un parametre
 def solver(initial_value, theta_i, gamma, Beta, E_foto_f, E_fotoi):
     #x_tol és la toleràcnia que vull d'error
     #maxev  és el numèro d'iteracions màximes que agafa, de normal son 200, no ho hauria de canviar
     #initial_value valor pel qual comença a buscar la solució
 
-    p0 = fsolve(lambda x: equation_solve(x*u.rad, theta_i, gamma, Beta, E_foto_f, E_fotoi, m), initial_value, xtol = 1e-8, maxfev = 4000)
+    p0 = fsolve(lambda x: solve_eq319(x*u.rad, theta_i, gamma, Beta, E_foto_f, E_fotoi, m), initial_value, xtol = 1e-8, maxfev = 4000)
 
     return p0
 
@@ -589,6 +583,6 @@ def theta_f(E_fotoi, E_fotof, Beta, gamma, theta_i):
 #Un altre tipus de solucionadro numeric, pero mes lent
 def solve_bisect(initial_point, final_point, theta_i, gamma, Beta, E_foto_f, E_fotoi):
 
-    p1 = bisect(lambda x: equation_solve(x, theta_i, gamma, Beta, E_foto_f, E_fotoi, m_unitless), initial_point, final_point, xtol = 1e-10, maxiter = 2000)
+    p1 = bisect(lambda x: solve_eq319(x, theta_i, gamma, Beta, E_foto_f, E_fotoi, m_unitless), initial_point, final_point, xtol = 1e-10, maxiter = 2000)
     
     return initial_point
