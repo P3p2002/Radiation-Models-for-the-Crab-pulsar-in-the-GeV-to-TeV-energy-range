@@ -28,8 +28,9 @@ import os
 
 SetUp()
 
-debug = True
-parallalize = True
+is_plot = True
+is_debug = True
+is_parallalize = True
 n_jobs = 4
 
 mp.mp.dps =  50  # number of digits for internal calculation
@@ -80,7 +81,7 @@ Gamma_3d  = add_dimension_R(Gamma_2d, E_mean)               # New array dimensio
 beta_3d   = beta_f(Gamma_3d, dps=None)                      # Value of beta of the positrons in 3 dimensions
 beta_arr  = beta_f(Gamma_arr, dps=None)                     # Value of beta of the positrons in 1 dimension (R)
 
-if debug: 
+if is_debug: 
     print ('R: ', R_arr,'\n')
     print ('Gamma_arr: ', Gamma_arr,'\n')
     print ('M: ', M_arr,'\n')
@@ -100,23 +101,23 @@ theta_3d = theta_3d*u.rad                                  # Array in 3 dimensio
 
 theta_init = theta_init_funct(beta_3d, theta_3d, epsilon_mean_3d, E_mean_3d) # Primera approximacio del que val el valor final de l'angle de dispersió del foto
 
-if debug:
+if is_debug:
     print ('theta_arr: ', theta_arr,'\n')
     print ('theta_init:', theta_init)
 
-plt.figure()
-plt.plot(R_arr, np.rad2deg(theta_arr), label = r"$\theta_{L} (R)$")
-plt.ylabel(r"$\theta_{L}$ (deg)")
-plt.xlabel(r"$R (R_{LC})$")
-plt.xscale("log")
-plt.yscale("log")
-plt.legend()
-plt.savefig('theta_L.png')
-if plt.isinteractive():
-    plt.show()
+if is_plot:
+    plt.figure()
+    plt.plot(R_arr, np.rad2deg(theta_arr), label = r"$\theta_{L} (R)$")
+    plt.ylabel(r"$\theta_{L}$ (deg)")
+    plt.xlabel(r"$R (R_{LC})$")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.legend()
+    plt.savefig('theta_L.png')
+    if plt.isinteractive():
+        plt.show()
 
-
-if debug:
+if is_debug:
     ind1 = -1
     angleplot = np.linspace(0, 2*np.pi, 2000)*u.rad
     derfinal = derEfotof(epsilon_mean_3d[ind1][ind1][ind1], Gamma_3d[ind1][ind1][ind1], beta_3d[ind1][ind1][ind1], theta_3d[ind1][ind1][ind1], angleplot, m_keV)
@@ -144,19 +145,20 @@ if debug:
     plt.show()
     ''' 
 
-
 # Solutions of Eq. 3.22
 theta_fs = np.arctan(-epsilon_mean_3d*np.sin(theta_3d)/(epsilon_mean_3d*np.cos(theta_3d) + m_keV*(Gamma_3d**2 -1)))
 theta_ss = theta_fs + np.pi*u.rad
 
-if debug:
+if is_debug:
     print ('theta_fs:', theta_fs)
 
 E_log_max = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_fs, m_keV)
 E_log_min = Eout_from_Ein_theta_thetaL(epsilon_mean_3d, Gamma_3d, beta_3d, theta_3d, theta_ss, m_keV)
 
-if debug:
+if is_debug:
 
+    print ('E_f,max: ',E_log_max,' E_f,min: ',E_log_min)
+    
     test_idx = 0
     
     nJ, nK, nI = Gamma_3d.shape
@@ -249,35 +251,31 @@ if plt.isinteractive():
     plt.show()
 """
 #Poso Gamma_3d[0] ja que no em depen de l'energia final del fotó, i per tant no em canvia el resultat quina triï
-E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[-1], theta_3d[0], 0.*u.rad,    m_keV)  # theta_Lbar is 0, WHY beta[0] AND NOT  beta[-1] ?????
+E_log_max2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[-1], beta_3d[-1], theta_3d[0], 0.*u.rad,    m_keV)  # theta_Lbar is 0
 E_log_min2 = Eout_from_Ein_theta_thetaL(epsilon_mean_3d[0], Gamma_3d[0],  beta_3d[0],  theta_3d[0], np.pi*u.rad, m_keV)  # theta_Lbar is pi 
 
-#E_log_max2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[-1]*(1-beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[-1]*(1-beta_3d[0]) + epsilon_mean_3d[0]*(1-np.cos(theta_3d[0])))#Energia maxima que els fotons poden assolir, primera aproximacio
-#E_log_min2 = epsilon_mean_3d[0]*m_keV*Gamma_3d[0]*(1+beta_3d[0]*np.cos(theta_3d[0]))/(m_keV*Gamma_3d[0]*(1+beta_3d[0]) + epsilon_mean_3d[0]*(1+np.cos(theta_3d[0])))#Energia minima que els fotons poden assolir, primera aproximacio
+if is_debug:
+    print ('E_f,max2: ',E_log_max2,' E_f,min2: ',E_log_min2)
 
-if debug:
-    print ('E_f,max: ',E_log_max,' E_f,min: ',E_log_min)
-
-#A partir d'aqui comença un calcul numeric del valor de l'angle de dispersió dels fotons
-
-if parallalize:
+# From here begins a numerical calculation of the value of the scattering angle of the photons
+if is_parallalize:
     theta_f_e = compute_theta_f_exact_parallel(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, n_jobs=n_jobs)
 else: 
     theta_f_e = compute_theta_f_exact(theta_init, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, E_log_min, E_log_max, fill_value=np.nan)
 
-def E_final(i, j, k):
-    epsilon_value = epsilon_mean_3d[i, j, k]
-    Gamma_value = Gamma_3d[i,j,k]
-    Beta_value = beta_3d[i,j,k]
-    theta_in_value = theta_3d[i,j,k]
-    theta_f = np.linspace(0, np.pi-2.5, 100)*u.rad
-    E_value = E_mean_3d[i,j,k]
-    num = epsilon_value*m_keV*Gamma_value*(1-Beta_value*np.cos(theta_in_value))
-    den = m_keV*Gamma_value*(1-Beta_value*np.cos(theta_f)) + epsilon_value*(1-np.cos(theta_in_value + theta_f))
-    return (theta_f,num/den - E_value)
+if is_debug:
+
+    def E_final(i, j, k):
+        epsilon_value = epsilon_mean_3d[i, j, k]
+        Gamma_value = Gamma_3d[i,j,k]
+        Beta_value = beta_3d[i,j,k]
+        theta_in_value = theta_3d[i,j,k]
+        theta_f = np.linspace(0, np.pi-2.5, 100)*u.rad
+        E_value = E_mean_3d[i,j,k]
+        num = epsilon_value*m_keV*Gamma_value*(1-Beta_value*np.cos(theta_in_value))
+        den = m_keV*Gamma_value*(1-Beta_value*np.cos(theta_f)) + epsilon_value*(1-np.cos(theta_in_value + theta_f))
+        return (theta_f,num/den - E_value)
     
-    
-if debug:
     i1, j1, k1 = 11, 98, 9
     xvalues, yvalues = E_final(i1,j1,k1)
     plt.plot(xvalues, yvalues)
@@ -285,50 +283,29 @@ if debug:
     plt.ylabel("Eq.(3.20)", fontsize = 20)
     plt.title(f"Case with i, j, k = {i1, j1, k1}", fontsize = 20)
     plt.show()
-    
-comprovacions = equation_solve(theta_f_e, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, m_keV)
+
+# VALIDITY CHECKS 
+validity_checks  = solve_eq319(theta_f_e, theta_3d, Gamma_3d, beta_3d, E_mean_3d, epsilon_mean_3d, m_keV)
 
 # Broadcast min/max from (n_Ei, n_R) to (n_Ef, n_Ei, n_R)
-
 valid = (
     (E_mean_3d > E_log_min[:, :, :]) &
     (E_mean_3d < E_log_max[:, :, :])
 )
-
 theta_f_e_valid = theta_f_e[valid]
 theta_f_e_nans = theta_f_e_valid[~np.isfinite(theta_f_e_valid)]
-print ('theta_f_e: ',theta_f_e_valid,'out of which nans/infs', len(theta_f_e_nans), 'Nans:', theta_f_e_nans)
+print ('theta_f_e: ',theta_f_e_valid,' out of which nans/infs: ', len(theta_f_e_nans), ' Nans:', theta_f_e_nans)
 
-
-contador = np.count_nonzero(valid)
-
-good = valid & (np.abs(comprovacions / m_keV**2) < 0.1)
-contador2 = np.count_nonzero(good)
+counter = np.count_nonzero(valid)
+good = valid & (np.abs(validity_checks  / m_keV**2) < 0.1)
+counter2 = np.count_nonzero(good)
 
 # Set invalid entries
-comprovacions = comprovacions.copy()
-comprovacions[~valid] = 99999999 * u.keV * u.keV
+validity_checks  = validity_checks.copy()
+validity_checks [~valid] = 99999999 * u.keV * u.keV
+print('number of bins in the range between minimum energy and maximum energy of the photon: ',counter,' with error <10%: ', counter2)
 
-#contador = 0
-#contador2 = 0
-
-##Aquí comprovo com de precís és el resultat
-#for j in range(len(E_mean)):
-#    for k in range(len(epsilon)):
-#        for i in range(len(R)):
-#            if (E_log_max[k][i] > E_mean_3d[j][k][i] > E_log_min[k][i]):
-#                contador += 1 
-#
-#                if abs(comprovacions[j][k][i]/m_keV**2) < 0.1 :
-#                    contador2 += 1
-#            else:
-#                comprovacions[j][k][i] = 99999999*u.keV*u.keV           
-print('contadors: ',contador, contador2)
-#Contador em dona el numero de bins que tinc entre el range de Energia maxima i Energia minima del foto
-#Mentres que contador2 em dona el numero de bins que tinc amb un error menor al 10%
-#AQUEST CALCUL S'HAURIA DE MILLORAR JA QUE L'ENERGIA FINAL DELS FOTONS CONVERGEIX POC
-
-#Aquí ha acabt el calcul de l'angle de dispersió dels fotons
+# SCATTERING CROSS-SECTION
 
 #Obtinc la secció eficaç segons el Peskin,
 #i li trec les unitats per poder-ho visualitzar millor en el compilador
@@ -414,17 +391,18 @@ Y_Log = np.log10(Y_keV)
 
 (Sedfit, xi, poptspectrum) = Xi_Fit(Y_keV, X_keV, 6, sigma)  
 
-plt.figure()
-plt.plot(X_keV, Sedfit, label = "Polynomia fit")
-plt.plot(X_keV, Y_keV, '.', label = "Data")
-
-plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
-plt.xlabel(r"E (keV)")
-plt.xscale("log")
-plt.yscale("log")
-plt.legend()
-if plt.isinteractive():
-    plt.show()
+if is_plot:
+    plt.figure()
+    plt.plot(X_keV, Sedfit, label = "Polynomia fit")
+    plt.plot(X_keV, Y_keV, '.', label = "Data")
+    
+    plt.ylabel(r"$E^2F (keVcm^{-2}s^{-1})$")
+    plt.xlabel(r"E (keV)")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.legend()
+    if plt.isinteractive():
+        plt.show()
 
 spec1d2 = SEDfromFIT(np.log10(epsilon_mean/E0), *poptspectrum)
 
