@@ -196,7 +196,7 @@ def Eout_from_Ein_theta_thetaL(epsilon, Gamma, beta, thetaL, theta_Lbar, m_e):
     
     '''
 
-    # theta_Lbar is theta_L'   --> need Taylor expansion for theta_Lbar very small 
+    # theta_Lbar is theta_L'   --> need Taylor expansion for theta_Lbar very small ?
     num = epsilon*m_e*Gamma * (1.0 - beta*np.cos(thetaL))
     den = m_e * Gamma * (1.0 - beta*np.cos(theta_Lbar)) + epsilon * (1.0 - np.cos(thetaL + theta_Lbar))
 
