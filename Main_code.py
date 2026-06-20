@@ -55,7 +55,7 @@ epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Ener
 
 log_epsilon_max = 7.5   # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
 log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_bins= 100   # 100  # was 30 number of logarithmically-space bins of epsilon
+log_epsilon_bins= 30   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
 epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
@@ -64,7 +64,7 @@ Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0)
 
 log_E_min   = 6   # 10^6 keV --> 1 GeV
 log_E_max   = 11  # 10^11 keV --> 100 TeV
-log_E_bins  = 100
+log_E_bins  = 30
 E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
 E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
@@ -276,7 +276,9 @@ if is_debug:
         den = m_keV*Gamma_value*(1-Beta_value*np.cos(theta_f)) + epsilon_value*(1-np.cos(theta_in_value + theta_f))
         return (theta_f,num/den - E_value)
     
-    i1, j1, k1 = 11, 98, 9
+    
+if debug:
+    i1, j1, k1 = 11, 9, 9
     xvalues, yvalues = E_final(i1,j1,k1)
     plt.plot(xvalues, yvalues)
     plt.xlabel(r"$\theta_L^\prime$(rad)", fontsize = 20)
@@ -676,6 +678,26 @@ for i in range(len(phase)):
     file.close()
 
 
+Data_file_name = "Data_file"
+Data_path = os.path.join(folder_name, Data_file_name)
+
+with open(Data_path, "w") as file:
+    file.write('R0:' + str(R0) + '\t' + 'RLI:'+ 
+               str(RLI) + '\t' + 'Delta R:' + 
+               str(delta_R) + '\n')
+    file.write('Log Epsilon Max:' + 
+               str(log_epsilon_max) + 
+               '\t' + 'Log Epsilon Min:' + 
+               str(log_epsilon_min) 
+               + '\t' + 'Log Epsilon Bins:'
+               + str(log_epsilon_bins) + '\n')
+    file.write('Log E Max:' + 
+               str(log_E_max) + 
+               '\t' + 'Log E Min:' + 
+               str(log_E_min) 
+               + '\t' + 'Log E Bins:'
+               + str(log_E_bins) + '\n')
+file.close()
 
 dNdV = Lsd/(4*np.pi*c**3*gamma_w*m_e)
 
@@ -747,7 +769,7 @@ plt.yscale("log")
 plt.ylabel(r"$E_{\gamma}^2 \dfrac{dN^{(0)}}{dSdtd\epsilon}$ (MeVcm$^{-2}$s$^{-1}$)", fontsize = 20)
 plt.xlabel(r"$E_{\gamma}$(MeV)", fontsize = 20)
 plt.title(
-    rf"SED with $\epsilon_{{max}} = 10^{{{log_epsilon_max}}}$ and $E_{{\gamma,max}} = 10^{{{log_E_max}}}$",
+    rf"SED with $\epsilon_{{max}} = 10^{{{log_epsilon_max}}}$, $E_{{\gamma,max}} = 10^{{{log_E_max}}}$ and $\alpha = {{{alpha}}}$",
     fontsize=20)
 plt.legend(fontsize = 20)
 plt.savefig("SED_theoretical.png")

@@ -43,6 +43,43 @@ plt.rcParams['ytick.minor.size'] = 5
 
 SetUp()
 
+Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
+alpha = 1         # power-law evolution index of Gammas along the current sheet WE WANT TO VARY BETWEEN 0.5 and 10
+
+folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf)}"
+if os.path.exists(folder_name):
+    print("The data has already been computed")
+else:
+    print("The data has to be computed")#An error wil pop up
+    
+Data_file_name = "Data_file"
+Data_path = os.path.join(folder_name, Data_file_name)
+
+
+data = {}
+
+with open(Data_path, "r") as file:
+    lines = file.readlines()
+
+# First line
+parts = lines[0].strip().split('\t')
+R0 = float(parts[0].split(':')[1])
+RLI = float(parts[1].split(':')[1])
+delta_R = float(parts[2].split(':')[1])
+
+# Second line
+parts = lines[1].strip().split('\t')
+log_epsilon_max = float(parts[0].split(':')[1])
+log_epsilon_min = float(parts[1].split(':')[1])
+log_epsilon_bins = int(parts[2].split(':')[1])
+
+# Third line
+parts = lines[2].strip().split('\t')
+log_E_max = float(parts[0].split(':')[1])
+log_E_min = float(parts[1].split(':')[1])
+log_E_bins = int(parts[2].split(':')[1])
+
+
 debug = False
 parallalize = True
 n_jobs = 4
@@ -51,34 +88,20 @@ mp.mp.dps =  50  # number of digits for internal calculation
 
 Eunit = u.keV     # energy unit to which the results are getting referred to
 
-
-R0 =  1.0  # FIXME 0.9  # Initial radii from which the positrons start to accelerate
-RLI = 10   # Upper integracion limit
-Rf =  2    # Final radius up to which the positrons are getting accelerated (in units of RLC)
-
-delta_R = 0.05 # Step width for the integral (in units of RLC)
-
 R_arr  = np.arange(R0, RLI, delta_R)  # array of distances w.r.t . the NS, in units of RLC
 
-alpha = 1         # power-law evolution index of Gammas along the current sheet WE WANT TO VARY BETWEEN 0.5 and 10
 gamma_w = 6*10**7 # corresponds to Gamma_w * m_e * c^2 = 30 TeV, the maximum possible with HESS Vela data
 gamma_0 = 300     # Initial gamma factor of the  positrons when the enter the current sheet
 E0 = 1*Eunit      # pivot energy, 1 keV
 
 epsilon_pulse_arr = [0.5, 1.3, 3.0, 7.0, 12.0, 27.0, 65.0, 170.0]*(u.keV) # Energies for the pulse profiles
 
-log_epsilon_max = 7.5   # Maximum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_min = -5    # Minimum of CR emission, according to Cao and Yang, in terms of log10(epsilon/E0)
-log_epsilon_bins= 15   # 100  # was 30 number of logarithmically-space bins of epsilon
 epsilon_arr = np.logspace(log_epsilon_min,log_epsilon_max,log_epsilon_bins)*(Eunit) # Array of initial photon energies, logarithmically spaced, BUT LINEAR
 
 epsilon_mean = np.sqrt(epsilon_arr[1:]*epsilon_arr[:-1]) # Mean energies of incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon = epsilon_arr[1:] - epsilon_arr[:-1]       # Energy spacing of the incident photons, logarithmically spaced, BUT LINEAR!!
 Delta_epsilon_log = np.log((epsilon_arr[1:])/E0) - np.log((epsilon_arr[:-1])/E0) # Spacing of natural logarithm of incident photon energies
 
-log_E_min   = 6   # 10^6 keV --> 1 GeV
-log_E_max   = 11  # 10^11 keV --> 100 TeV
-log_E_bins  = 15
 E_arr       = np.logspace(log_E_min,log_E_max, log_E_bins)*(Eunit) # Array of scattered photon energies, logarithmically spaced, BUT LINEAR!!
 
 E_mean     = np.sqrt(E_arr[1:]*E_arr[:-1])   # Mean energies of scattered photons, logarithmically spaced, BUT LINEAR!!
@@ -199,12 +222,6 @@ rho = anisotropy(phase_3d, R_3d*RLC, sigma, theta0 )
 #rho = 1
 
 
-folder_name = f"Data_Alpha_{alpha}_Rf_{int(Rf)}"
-if os.path.exists(folder_name):
-    print("The data has already been computed")
-else:
-    print("The data has to be computed")#An error wil pop up
-    
 first_int = []
 for i in range(len(phase)):
     file_name = "First_int_" + str(i)
@@ -218,6 +235,7 @@ for i in range(len(phase)):
         aux = np.array(aux)
     first_int.append(aux)
 first_int = np.array(first_int)*(1/u.keV)**3
+
 
 #torno a integrar, tranposo i poso les unitats que toquen
 second_int = np.sum(first_int*RLC**2/(R_3d*RLC)**2*rho, axis = 2)*delta_R
@@ -277,7 +295,7 @@ plt.yscale("log")
 plt.ylabel(r"$E_{\gamma}^2 \dfrac{dN^{(0)}}{dSdtd\epsilon}$ (MeVcm$^{-2}$s$^{-1}$)", fontsize = 20)
 plt.xlabel(r"$E_{\gamma}$(MeV)", fontsize = 20)
 plt.title(
-    rf"SED with $\epsilon_{{max}} = 10^{{{log_epsilon_max}}}$ and $E_{{\gamma,max}} = 10^{{{log_E_max}}}$",
+    rf"SED with $\epsilon_{{max}} = 10^{{{log_epsilon_max}}}$, $E_{{\gamma,max}} = 10^{{{log_E_max}}}$ and $\alpha = {{{alpha}}}$",
     fontsize=20)
 plt.legend(fontsize = 20)
 plt.savefig("SED_theoretical.png")
@@ -313,7 +331,6 @@ for i in range(len(secitr_units)):
     A_initial = 1
     C_initial = 1
     
-    print(secitr_units[i])
     popt, pcov = curve_fit(asym_lorentz_C, phase, secitr_units[i], [x_initial, gamma_initial1, gamma_initial2, A_initial, C_initial], maxfev = 800000)
 
     adjusts.append(popt)
